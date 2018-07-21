@@ -1,0 +1,158 @@
+﻿<%@ master language="C#" autoeventwireup="true" inherits="AppMaster, App_Web_j2s_bpzk" %>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Deepak Transport</title>
+    <link href="App_Themes/Menu/fancydropdown.css" rel="stylesheet" type="text/css" />
+    <link href="App_Themes/Default_Themes/Form-Style.css" rel="stylesheet" type="text/css" />
+
+    <script src="App_Themes/JS/Validation.js" type="text/javascript">function A1_onclick() {
+    }
+    </script>
+
+    <asp:ContentPlaceHolder id="MetaPlaceHolder" runat="server" />
+    <meta name="robots" content="<%=GetMetaRobotsValueFromDatabase()%>" />
+
+    <script type="text/javascript" language="javascript">
+    //To avoid backbutton and F5(Refresh)
+    function checkKeyCode(evt)
+    {
+    var evt = (evt) ? evt : ((event) ? event : null);
+    var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+    if(event.keyCode==116)
+    {
+    evt.keyCode=0;
+    return false
+    }
+//    if(event.keyCode==8)
+//    {
+//    evt.keyCode=0;
+//    return false
+//    }
+//    if(event.keyCode==82 || event.keyCode==78)
+//    {
+//    evt.keyCode=0;
+//    return false
+//    }
+}
+    document.onkeydown=checkKeyCode;
+    </script>
+
+    <script language="Javascript" type="text/javascript">
+function capLock(e){
+ kc = e.keyCode?e.keyCode:e.which;
+ sk = e.shiftKey?e.shiftKey:((kc == 16)?true:false);
+ if(((kc >= 65 && kc <= 90) && !sk)||((kc >= 97 && kc <= 122) && sk))
+ alert("Caps Lock on");
+ // document.getElementById('divMayus').style.visibility = 'visible';
+ else
+  document.getElementById('divMayus').style.visibility = 'hidden';
+}
+    </script>
+
+</head>
+<body>
+    <form id="form1" runat="server">
+    <div>
+           <div id="menu">
+            <ul class="tabs">
+                <li>
+                    <h4 id="uname" runat="server" style="color: green; font-size: 18px">
+                        <a href="#">Chennai</a></h4>
+                </li>
+                <li><a href="Home.aspx"><span>Home</span></a></li>
+                <li id="MasterMenu" runat="server" class="hasmore"><a href="#"><span>Master</span></a>
+                    <ul class="dropdown">
+                        <li><a href="Branches.aspx">Create Branches</a></li>
+                        <li><a href="AddressBook.aspx">Address Book</a></li>
+                        <li><a href="BankDetails.aspx">Bank Details</a></li>
+                        <li><a href="Company.aspx">Company Profile</a></li>
+                        <li><a href="EmployeeDetails.aspx">Employee Details</a></li>
+                        <li><a href="ItemDetails.aspx">Item Details</a></li>
+                        <li><a href="StockDetails.aspx">Stock Details</a></li>
+                        <li><a href="StoreDetails.aspx">Godown Details</a></li>
+                        <li><a href="NewUser.aspx">New User</a></li>
+                        <li><a href="RateMaster.aspx">Rate Master</li>
+                        <%--<li><a href="TaxDetails.aspx">Tax Details</a></li>--%>
+                        <%--<li><a href="UnitDetails.aspx">Unit</a></li>--%>
+                    </ul>
+                </li>
+                <li id="BookingMenu" runat="server"><a href="BookingDetails.aspx"><span>Booking Details</span></a></li>
+                <%--                <li class="hasmore"><a href="#"><span>Book Details</span></a>
+                    <ul class="dropdown">
+                        <li><a href="BookingDetails.aspx"><span>Booking Details</span></a></li>
+                    </ul>
+                </li>
+--%>
+                <li id="LorryAcMenu" runat="server" class="hasmore"><a href="#"><span>Lorry A/C</span></a>
+                    <ul class="dropdown">
+                        <li><a href="LorryChallan.aspx">Lorry Challan</a></li>
+                        <li><a href="LorryACSlip.aspx">Lorry Ac Slip</a></li>
+                        <li><a href="RecievedLorryChallan.aspx">Received Lorry</a></li>
+                    </ul>
+                </li>
+                <li id="DeliveryMenu" runat="server"><a href="DeliverySlip.aspx">Delivery Slip</a></li>
+                <%--                <li class="hasmore"><a href="#"><span>Delivery Details</span></a>
+                    <ul class="dropdown">
+                        <li><a href="DeliverySlip.aspx">Delivery Slip</a></li>
+                    </ul>
+                </li>
+--%>
+                <li id="PaymentMenu" runat="server" class="hasmore"><a href="Payments.aspx"><span>Payments</span></a></li>
+                    <li id="DayBookMenu" runat="server" class="hasmore"><a href="DayBook.aspx"><span>DayBook</span></a></li>
+                        <li id="AuthMenu" runat="server"><a href="Authentication.aspx"><span>Authentication</span></a></li>
+                        <li id="MessageMenu" runat="server" class="hasmore"><a href="CustomerMessage.aspx"><span>Message</span></a></li>
+                            <li id="AccountsMenu" runat="server"><a href="Accounts.aspx">Accounts</a></li>
+                            <%--<li class="hasmore"><a href="#"><span>Accounts</span></a>
+                    <ul class="dropdown">
+                        <li><a href="Login.aspx">Accounts</a></li>
+                    </ul>
+                </li>--%>
+                            <li class="hasmore"><a href="#"><span>Report</span></a>
+                                <ul class="dropdown">
+                                    <%-- <li><a href="CustomerMessage.aspx">Customer Message</a></li>    --%>
+                                    <li id="ReportMenu1" runat="server"><a href="AgentCodeReport.aspx">AgentWise Report</a></li>
+                                    <li id="ReportMenu2" runat="server"><a href="CreditorsReport.aspx">Creditors Report</a></li>
+                                    <li id="ReportMenu3" runat="server"><a href="CustomerMessageReport.aspx">CustomerMessage Report</a></li>
+                                    <li id="ReportMenu4" runat="server"><a href="CustomerReport.aspx">Customer Report</a></li>
+                                    <li id="ReportMenu5" runat="server"><a href="DailyCustPaymentReport.aspx">DailyCustPayment Report</a></li>
+                                    <li id="ReportMenu6" runat="server"><a href="DayBookReport.aspx">DayBook Report</a></li>
+                                    <li id="ReportMenu7" runat="server"><a href="DeliverySlipReport.aspx">DeliverySlip_MRNo Report</a></li>
+                                    <li id="ReportMenu8" runat="server"><a href="DeliveryStatement.aspx">DeliveryStatement Report</a></li>
+                                    <li id="ReportMenu9" runat="server"><a href="LorryAcSlipReport.aspx">LorryAcSlip Report</a></li>
+                                    <li id="ReportMenu10" runat="server"><a href="LREnquiryReport.aspx">LREnquiry Report</a></li>
+                                    <li id="ReportMenu11" runat="server"><a href="MonthlyTrialBalance.aspx">MonthlyBalance Report</a></li>
+                                    <li id="ReportMenu12" runat="server"><a href="PaidAmountReport.aspx">PaidAmount Report</a></li>
+                                    <li id="ReportMenu13" runat="server"><a href="ServiceTaxandFreightReport.aspx">ServiceTax And Freight Report</a></li>
+                                    <li id="ReportMenu14" runat="server"><a href="UnDeliveryStatement.aspx">UnDeliveryStatement Report</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="Logout.aspx"><span>Logout</span></a></li>
+            </ul>
+        </div>
+
+        <script src="App_Themes/Menu/fancydropdown.js" type="text/javascript"></script>
+
+    </div>
+    <div>
+        <asp:ContentPlaceHolder ID="PageContent" runat="server">
+        </asp:ContentPlaceHolder>
+    </div>
+    <div class="PageTitle">
+        <br />
+        <br />
+        <br />
+        <asp:Label ID="PageTitleSpn" runat="server" Text="" CssClass=""></asp:Label>
+    </div>
+    <div style="float: right; color: green; font-size: 18px; margin-top: 50px; margin-right: 20px;
+        position: fixed">
+        <p>
+            <span style="color: red; font-size: 18px;">Welcome </span><span id="username1" runat="server">
+            </span><a href="changepassword.aspx" style="font-size: 12px"> Change Password</a>
+        </p>
+    </div>
+    </form>
+    
+</body>
+</html>

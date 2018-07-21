@@ -1,0 +1,932 @@
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+	/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 13-02-2012
+		DESCRIPTION : To Select the record from the AddressBook Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROC [dbo].[LorryChallen_CustRemarks_V]
+@Cust VARCHAR(20),
+@BranchName VARCHAR(50)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT
+		AddrB.OriCustName
+		,AddrB.Mob1
+		,AddrB.Mob2
+	FROM
+		' + @DBName + '.dbo.AddressBook AddrB
+	WHERE
+		AddrB.Name='''+@Cust+'''
+	AND
+		BranchName='''+@BranchName+''''
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+=============================================================================================================
+
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+ALTER PROC [dbo].[DeliverySlip_Cust_Check]
+(
+@CustomerName Varchar(50)
+,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+
+BEGIN
+	SET @SQLString = N'SELECT 
+		AB.OriCustName
+		,ISNULL(ACI.Labour,0) as Labour
+		,ISNULL(ACI.Delivery,0) as DeliveryCh
+		,ISNULL(ACI.Stationary,0) as StationaryCh
+		,ISNULL(ACI.Demurrage,0) as Demurrage
+		,ISNULL(ACI.LocalCartage,0) as LocalCartage
+		,ISNULL(ACI.ServiceTax,0) as ServiceTax
+	FROM
+		' + @DBName + '.dbo.AddressBook AB
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressChargesInfo ACI
+	ON
+		ACI.ID=AB.ChargesInfoID
+	WHERE
+		Name='''+@CustomerName+'''
+	AND
+		AB.Active=''True''
+	
+
+
+
+
+	SELECT 
+		AFI.ID,AFI.Packings 
+	FROM
+		' + @DBName + '.dbo.AddressBook AB
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressChargesInfo ACI
+	ON
+		ACI.ID=AB.ChargesInfoID
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressFreightInfo AFI
+	ON
+		AFI.AddressID=AB.ID
+	WHERE
+		Name='''+@CustomerName+'''
+	AND
+		AB.Active=''True''
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+
+--BEGIN
+--	SET @SQLString = N'SELECT Name,OriCustName FROM ' + @DBName + '.dbo.AddressBook
+--					WHERE Name='''+@CustomerName+''' AND BranchName='''+@BranchName+''' AND Active=''TRUE'''
+--
+--EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+--
+--END
+
+==================================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+	/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 19-12-2011
+		DESCRIPTION : To Update the record from the AddressBook and AddressInfo Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROCEDURE [dbo].[AddressBook_U]
+(
+			@ContactID INT
+			,@AccID INT
+			,@ChargesID INT
+            ,@AddressID int		
+            ,@Category VARCHAR(20)		
+            ,@Address VARCHAR(50)
+		    ,@PinCode INT
+		    ,@City VARCHAR(20)
+            ,@Name varchar(30) 
+			,@SurName varchar(30) 
+			,@OriCustName varchar(30) 
+			,@GroupName varchar(30)   
+			,@GroupID INT   
+			,@AgentCode varchar(30)      
+            ,@PhonePrime varchar(20)
+            ,@PhoneSecondary varchar(20)
+			,@Mob1 VARCHAR(15)
+			,@Mob2 VARCHAR(15)
+            ,@EmailPrime varchar(40)
+            ,@EmailSecondary varchar(40)
+            ,@Website varchar(50)
+            ,@Fax varchar(30)
+            ,@TINNo varchar(30)
+            ,@CSTNo varchar(20)
+            ,@Areacode varchar(20)
+			,@Labour DECIMAL(18,2)
+			,@Delivery DECIMAL(18,2)
+			,@Stationary DECIMAL(18,2)
+			,@Demurrage DECIMAL(18,2)
+			,@LocalCartage DECIMAL(18,2)
+			,@ServiceTax DECIMAL(18,2)
+			,@BranchName varchar(50)
+		    ,@UserID varchar(25)
+)
+AS
+
+DECLARE @ChargesInfoID INT
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+BEGIN
+SET @SQLString=N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@AddressID) + ''' AND Active=''True'')
+BEGIN	
+	if('''+ CONVERT(VARCHAR(15),@PinCode) + ''' != 0)
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressInfo
+	SET
+				Address=''' + Upper(@Address) + ''' 
+			   ,PinCode=''' + CONVERT(VARCHAR(15),@PinCode) + '''
+			   ,City=''' + Upper(@City) + '''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' +  CONVERT(VARCHAR(10),@AddressID) + ''' AND Active=''True''   
+	END
+ELSE
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressInfo
+	SET
+				Address=''' + Upper(@Address) + ''' 
+
+			   ,City=''' + Upper(@City) + '''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' + CONVERT(VARCHAR(10),@AddressID) + ''' AND Active=''True''   
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+BEGIN
+SET @SQLString=N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressChargesInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@ChargesID) + ''' AND Active=''True'')
+BEGIN	
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressChargesInfo
+	SET
+			   Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			   ,Delivery='''+CONVERT(VARCHAR(10),@Delivery)+'''
+			   ,Stationary='''+CONVERT(VARCHAR(10),@Stationary)+'''
+			   ,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			   ,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			   ,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' + CONVERT(VARCHAR(10),@ChargesID) + ''' AND Active=''True''   
+	END
+END'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+SET @SQLString=N'BEGIN IF NOT EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressChargesInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@ChargesID) + ''' AND Active=''True'')
+		INSERT INTO ' +@DBName+'.dbo.AddressChargesInfo
+		(
+					Labour 
+					,Delivery
+					,Stationary
+					,Demurrage
+					,LocalCartage
+					,ServiceTax
+					,BranchName
+					,CreatedBy
+					,CreatedDate
+					,Active
+		)
+		VALUES
+		(
+					'''+CONVERT(VARCHAR(10),@Labour)+'''
+					,'''+CONVERT(VARCHAR(10),@Delivery)+'''
+					,'''+CONVERT(VARCHAR(10),@Stationary)+'''
+					,'''+CONVERT(VARCHAR(10),@Demurrage)+'''
+					,'''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+					,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+					,'''+@BranchName+''' 
+					,'''+@UserID+'''
+					,'''+@GETDATE+'''
+					,''True''
+		)
+	END
+
+SELECT @ChargesInfoID =SCOPE_IDENTITY()'
+EXEC sp_executesql @SQLString,N'@ChargesInfoID INTEGER OUTPUT', @ChargesInfoID OUTPUT
+
+
+BEGIN
+SET @SQLString = N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressBook WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(10),@ContactID) + ''' AND Active=''True'')
+BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressBook
+	SET				
+            Name=''' + UPPER(@Name) + '''
+			,SurName=''' + UPPER(@SurName) + '''
+			,OriCustName=''' + UPPER(@OriCustName) + '''
+			,ChargesInfoID=''' + CONVERT(VARCHAR(10),@ChargesInfoID) + '''
+			,AgentCode=''' + @AgentCode + '''
+			,Types=''' + @Category + '''
+			,GroupName=''' + @GroupName + '''
+		    ,PhonePrime=''' + @PhonePrime + '''
+            ,PhoneSecondary=''' + @PhoneSecondary + '''
+			,Mob1=''' + @Mob1 + '''
+			,Mob2=''' + @Mob2 + '''
+            ,EmailPrime=''' + UPPER(@EmailPrime) + '''
+            ,EmailSecondary=''' + UPPER(@EmailSecondary) + '''
+            ,Website=''' + UPPER(@Website) + '''
+            ,Fax=''' + @Fax + '''
+            ,TINNo=''' + @TINNo + '''
+            ,CSTNo=''' + @CSTNo + '''
+            ,Areacode=''' + @Areacode + '''
+			,BranchName=''' + @BranchName + '''
+		    ,Active=''True''
+		    ,UpdatedBy=''' + @UserID + '''
+		    ,UpdateDate=''' + @GETDATE + '''
+	WHERE
+			ID=''' + CONVERT(VARCHAR(10),@ContactID) + ''' AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+--SELECT '1'
+END
+	
+SET @SQLString = N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '_Acc.dbo.Accounts WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(10),@AccID) + ''' AND Active=''True'')
+	BEGIN 
+		UPDATE ' + @DBName + '_Acc.dbo.Accounts
+		SET
+			ModifyAt = ''' + @GETDATE + '''
+			,ModifyBy = ''' + @UserID + '''
+			,Name = ''' + UPPER(@Name) + '''
+			,OriCustName = ''' + UPPER(@OriCustName) + '''
+			,Status = ''1''
+			,Address = ''' + @Address + '''
+			,Pincode = ''' + CONVERT(VARCHAR(10),@Pincode) + '''
+			,City = ''' + @City + '''
+			,BranchName=''' + @BranchName + '''
+			,GroupId = ''' + CONVERT(VARCHAR(10),@GroupID) + '''
+			,IsHiddenUser = ''1''
+		WHERE
+			BranchName=''' + @BranchName + ''' AND ID=''' + CONVERT(VARCHAR(10),@AccID) + '''
+	END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+END
+
+
+===================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+	/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 19-12-2011
+		DESCRIPTION : To View the record from the AddressBook and AddressInfo Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROCEDURE [dbo].[AddressBook_S]
+(
+@Name  VARCHAR(30),
+@CateName VARCHAR(50),
+@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+  SET @SQLString=N'IF EXISTS(SELECT * FROM ' + @DBName + '.dbo.AddressBook WHERE BranchName=''' + @BranchName + ''' 
+					AND Name=''' + @Name + ''' AND [Types]=''' + @CateName + ''' AND Active=''True'')
+	BEGIN
+		SELECT 
+
+			AB.ID,
+			A.ID as AccountsID,
+			AB.SurName,
+			AB.OriCustName,
+			AB.GroupName,
+			AB.AgentCode,
+			AB.AddressInfoID,
+			AB.ChargesInfoID,
+			AB.Types,
+			AB.PhonePrime,
+			AB.PhoneSecondary,
+			AB.Mob1,
+			AB.Mob2,
+			AB.EmailPrime,
+			AB.EmailSecondary,
+			AB.Website,
+			AB.Fax,
+			AB.TINNo,
+			AB.CSTNo,
+			AB.Areacode,
+			AD.Address,
+			AD.City,
+			AD.PinCode,
+			ACI.Labour,
+			ACI.Delivery,
+			ACI.Stationary,
+			ACI.Demurrage,
+			ACI.LocalCartage,
+			ACI.ServiceTax
+			
+	FROM
+			' + @DBName + '.dbo.AddressBook (NOLOCK)AB INNER JOIN ' + @DBName + '.dbo.AddressInfo (NOLOCK) AD ON AB.AddressInfoID=AD.ID JOIN 
+					' + @DBName + '_Acc.dbo.Accounts A ON A.[Name]=AB.[Name] LEFT JOIN ' + @DBName + '.dbo.AddressChargesInfo (NOLOCK) ACI
+			ON ACI.ID=AB.ChargesInfoID
+	WHERE
+			AB.BranchName=''' + @BranchName + '''
+	AND	
+			AD.BranchName=''' + @BranchName + '''
+	AND
+			AB.[Name]=''' + @Name + '''
+	AND
+			AB.[Types]=''' + @CateName + '''
+	AND 
+			AB.Active=''True''
+	
+
+	
+		SELECT
+			AFI.ID as FreightID
+			,AFI.AddressID
+			,AFI.Packings
+			,AFI.Weight
+			,AFI.Fixed
+		FROM
+			AddressFreightInfo AFI
+		JOIN
+			AddressBook AB
+		ON
+			AFI.AddressID=AB.ID
+		WHERE
+			AB.Active=''True''
+		AND
+			AB.BranchName=''' + @BranchName + '''
+		AND
+			AB.[Name]=''' + @Name + '''
+		
+		AND
+			AFI.Active=''True''
+	END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+===================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+	/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 19-12-2011
+		DESCRIPTION : To View the record from the AddressBook and AddressInfo Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROCEDURE [dbo].[AddressBook_S]
+(
+@Name  VARCHAR(30),
+@CateName VARCHAR(50),
+@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+  SET @SQLString=N'IF EXISTS(SELECT * FROM ' + @DBName + '.dbo.AddressBook WHERE BranchName=''' + @BranchName + ''' 
+					AND Name=''' + @Name + ''' AND [Types]=''' + @CateName + ''' AND Active=''True'')
+	BEGIN
+		SELECT 
+
+			AB.ID,
+			A.ID as AccountsID,
+			AB.SurName,
+			AB.OriCustName,
+			UPPER(AB.GroupName) as GroupName,
+			AB.AgentCode,
+			AB.AddressInfoID,
+			AB.ChargesInfoID,
+			AB.Types,
+			AB.PhonePrime,
+			AB.PhoneSecondary,
+			AB.Mob1,
+			AB.Mob2,
+			AB.EmailPrime,
+			AB.EmailSecondary,
+			AB.Website,
+			AB.Fax,
+			AB.TINNo,
+			AB.CSTNo,
+			AB.Areacode,
+			AD.Address,
+			AD.City,
+			AD.PinCode,
+			ACI.Labour,
+			ACI.Delivery,
+			ACI.Stationary,
+			ACI.Demurrage,
+			ACI.LocalCartage,
+			ACI.ServiceTax
+			
+	FROM
+			' + @DBName + '.dbo.AddressBook (NOLOCK)AB INNER JOIN ' + @DBName + '.dbo.AddressInfo (NOLOCK) AD ON AB.AddressInfoID=AD.ID JOIN 
+					' + @DBName + '_Acc.dbo.Accounts A ON A.[Name]=AB.[Name] LEFT JOIN ' + @DBName + '.dbo.AddressChargesInfo (NOLOCK) ACI
+			ON ACI.ID=AB.ChargesInfoID
+	WHERE
+			AB.BranchName=''' + @BranchName + '''
+	AND	
+			AD.BranchName=''' + @BranchName + '''
+	AND
+			AB.[Name]=''' + @Name + '''
+	AND
+			AB.[Types]=''' + @CateName + '''
+	AND 
+			AB.Active=''True''
+	
+
+	
+		SELECT
+			AFI.ID as FreightID
+			,AFI.AddressID
+			,AFI.Packings
+			,AFI.Weight
+			,AFI.Fixed
+		FROM
+			AddressFreightInfo AFI
+		JOIN
+			AddressBook AB
+		ON
+			AFI.AddressID=AB.ID
+		WHERE
+			AB.Active=''True''
+		AND
+			AB.BranchName=''' + @BranchName + '''
+		AND
+			AB.[Name]=''' + @Name + '''
+		
+		AND
+			AFI.Active=''True''
+	END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+======================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+/*----------------------------------------
+<CREAED BY:Murugan P>
+<CREATED DATE:28-03-2012>
+<DES: To Select All Group Name From Group Table (Deeapk_Acc DB) >
+------------------------------------------*/
+
+ALTER PROC [dbo].[AddressBook_GroupLoad]
+@BranchName VARCHAR(50)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+BEGIN
+	SET @SQLString = N'SELECT 
+		ID,
+		upper(Name) as [Name]
+	FROM ' + @DBName + '_Acc.dbo.[Group]
+	WHERE
+		BranchName=''' + @BranchName + '''
+	AND
+		Status=''True''
+	ORDER BY Name ASC'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+==================================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+ALTER procedure [dbo].[USP_GetBalanceAmountByDate]      
+(      
+ @startingDate datetime,          
+ @closingDate datetime,
+ @BranchName varchar(50)          
+)        
+as              
+
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+IF(@BranchName='Chennai')
+	BEGIN
+		create table #t (AccountID int,name varchar(50),type varchar(10),amount decimal(18,2))
+
+		insert into #t(AccountID,name,type,amount)
+		(
+		select A.ID as AccountID,name,type,isnull(sum(amount),0) as amount from debitscredits dc inner join chennai_Acc.dbo.Accounts A on DC.Accountid=A.id  
+		where DC.date >= CONVERT(VARCHAR(10),@startingDate,101)
+						and DC.date <=CONVERT(VARCHAR(10),@closingDate,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						and dc.status='true' and deliveryid is not null and dc.BranchName=@BranchName group by A.ID,A.Name, DC.Type 
+
+		)order by a.name asc
+
+		create table #t1 (AccountID int,name varchar(50),type varchar(10),amount1 decimal(18,2))
+
+		insert into #t1(AccountID,name,type,amount1)
+		(
+		select A.ID as AccountID, name,type,isnull(sum(amount),0) as amount1 from debitscredits dc inner join chennai_Acc.dbo.Accounts A on DC.Accountid=A.id  
+		where DC.date >= CONVERT(VARCHAR(10),@startingDate,101)
+						and DC.date <=CONVERT(VARCHAR(10),@closingDate,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						and dc.status='true' and paymentid is not null and dc.BranchName=@BranchName group by A.ID,A.Name, DC.Type 
+
+		)order by a.name asc
+
+		create table #t2 (AccountID int,name varchar(50),type varchar(10),amount2 decimal(18,2))
+
+		insert into #t2(AccountID,name,type,amount2)
+		(
+		select A.ID as AccountID,name,type,isnull(sum(amount),0) as amount2 from debitscredits dc inner join chennai_Acc.dbo.Accounts A on DC.Accountid=A.id  
+		where DC.date >= CONVERT(VARCHAR(10),@startingDate,101)
+						and DC.date <=CONVERT(VARCHAR(10),@closingDate,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						and dc.status='true' and paymentid is null and deliveryid is null and Type='Dr' and dc.BranchName=@BranchName group by A.ID,A.Name, DC.Type 
+
+		)order by a.name asc
+
+		create table #t3 (amount3 decimal(18,2))
+
+		insert into #t3(amount3)
+		(
+		select isnull(sum(amount),0) as amount3 from debitscredits dc inner join chennai_Acc.dbo.Accounts A on DC.Accountid=A.id  
+		where DC.date >= CONVERT(VARCHAR(10),@startingDate,101)
+						and DC.date <=CONVERT(VARCHAR(10),@closingDate,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						and dc.status='true' and deliveryid is not null and dc.BranchName=@BranchName 
+
+		)
+
+		create table #t4 (AccountID int,name varchar(50),type varchar(10),amount4 decimal(18,2))
+
+		insert into #t4(AccountID,name,type,amount4)
+		(
+		select A.ID as AccountID,name,type,isnull(sum(amount),0) as amount2 from debitscredits dc inner join chennai_Acc.dbo.Accounts A on DC.Accountid=A.id  
+		where DC.date >= CONVERT(VARCHAR(10),@startingDate,101)
+						and DC.date <=CONVERT(VARCHAR(10),@closingDate,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						and dc.status='true' and paymentid is null and deliveryid is null and Type='Cr' and dc.BranchName=@BranchName group by A.ID,A.Name, DC.Type 
+
+		)order by a.name asc
+		
+		create table #final (AccountID int,name varchar(50),type varchar(10),amount5 decimal(18,2))
+
+		insert into #final(AccountID,name,type,amount5)
+		(
+		select case when isnull(amount2,0)>isnull(amount4,0) then a.AccountID else d.AccountID end as AccountID
+		,case when isnull(amount2,0)>isnull(amount4,0) then a.name else d.name end as name
+		,case when isnull(amount2,0)>isnull(amount4,0) then a.type else d.type end as type
+		,case when isnull(amount2,0)>isnull(amount4,0) then isnull(a.amount2,0)-isnull(d.amount4,0) else isnull(d.amount4,0)-isnull(a.amount2,0) end as amount5 
+		from #t2 a full join #t4 d on a.name=d.name
+		)
+
+		declare @a varchar(1000)
+
+		set @a='select a.AccountID,a.name,a.type, case when (isnull(a.amount,0))>(isnull(b.amount1,0))
+				then ((isnull(a.amount,0))-(isnull(b.amount1,0))) else ((isnull(b.amount1,0))-(isnull(a.amount,0))) end as amt 
+		from #t a join #t1 b on a.name=b.name group by a.Accountid,a.name,a.amount,b.amount1,a.type having 
+		((isnull(a.amount,0))-(isnull(b.amount1,0)))>0 union all select C.accountid,C.name,C.type,C.amount5
+		from #final C UNION ALL select ''0'' as accountid,''DDS'' as name,''Cr'' as type,sum(D.amount3)
+		from #t3 d order by name'
+
+		exec(@a)
+--		select * from #t
+--		select * from #t1
+--		select * from #t2
+--		select * from #t4
+		drop table #t
+		drop table #t1
+		drop table #t2
+		drop table #t3
+		drop table #t4
+		drop table #final
+	end
+
+===========================================================================================================================================
+
+
+
+
+
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+ALTER PROCEDURE [dbo].[USP_GetBalanceAmountByDate]      
+(      
+ @STARTINGDATE DATETIME,          
+ @CLOSINGDATE DATETIME,
+ @BRANCHNAME VARCHAR(50)          
+)        
+AS  
+
+DECLARE @DBNAME NVARCHAR(2550)
+
+SELECT @DBNAME=(SELECT NAME
+FROM SYS.DATABASES WHERE NAME=@BRANCHNAME)
+
+DECLARE @USEANDEXECSTATMENT NVARCHAR(4000), @SQLSTRING NVARCHAR(4000)
+
+SET @USEANDEXECSTATMENT = 'USE ' + @DBNAME +' EXEC SP_EXECUTESQL @SQLSTRING'
+
+
+IF(@BRANCHNAME=@BRANCHNAME)
+	BEGIN
+		CREATE TABLE #OLDOP (NAME VARCHAR(20),TYPE VARCHAR(10),AMOUNT DECIMAL(18,2))
+
+		INSERT INTO #OLDOP(NAME,TYPE,AMOUNT)
+		(
+		SELECT 'OPENING BALANCE' AS NAME, 'Dr' AS TYPE,ISNULL(SUM(AMOUNT),0) AS AMOUNT FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE <= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.STATUS='TRUE' AND TYPE='Dr' AND DC.BRANCHNAME=@BRANCHNAME
+
+		)
+
+		CREATE TABLE #OLDOP1 (NAME VARCHAR(20),TYPE VARCHAR(10),AMOUNT1 DECIMAL(18,2))
+
+		INSERT INTO #OLDOP1(NAME,TYPE,AMOUNT1)
+		(
+		SELECT 'OPENING BALANCE' AS NAME,'Cr' AS TYPE,ISNULL(SUM(AMOUNT),0) AS AMOUNT1 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE <=CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.STATUS='TRUE' AND TYPE='Cr' AND DC.BRANCHNAME=@BRANCHNAME AND PAYMENTID IS NULL
+
+		)	
+
+		
+		CREATE TABLE #T (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT DECIMAL(18,2))
+
+		INSERT INTO #T(ACCOUNTID,NAME,TYPE,AMOUNT)
+		(
+		SELECT A.ID AS ACCOUNTID,NAME,TYPE,ISNULL(SUM(AMOUNT),0) AS AMOUNT FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						AND DC.STATUS='TRUE' AND DELIVERYID IS NOT NULL AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+
+		CREATE TABLE #T1 (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT1 DECIMAL(18,2))
+
+		INSERT INTO #T1(ACCOUNTID,NAME,TYPE,AMOUNT1)
+		(
+		SELECT A.ID AS ACCOUNTID, NAME,TYPE,ISNULL(SUM(AMOUNT),0) AS AMOUNT1 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						AND DC.STATUS='TRUE' AND PAYMENTID IS NOT NULL AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+
+		CREATE TABLE #T2 (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT2 DECIMAL(18,2))
+
+		INSERT INTO #T2(ACCOUNTID,NAME,TYPE,AMOUNT2)
+		(
+		SELECT A.ID AS ACCOUNTID,NAME,TYPE,ISNULL(SUM(AMOUNT),0) AS AMOUNT2 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						AND DC.STATUS='TRUE' AND PAYMENTID IS NULL AND DELIVERYID IS NULL AND TYPE='Dr' AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+
+		CREATE TABLE #T3 (AMOUNT3 DECIMAL(18,2))
+
+		INSERT INTO #T3(AMOUNT3)
+		(
+		SELECT ISNULL(SUM(AMOUNT),0) AS AMOUNT3 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						AND DC.STATUS='TRUE' AND DELIVERYID IS NOT NULL AND DC.BRANCHNAME=@BRANCHNAME 
+
+		)
+
+		CREATE TABLE #T4 (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT4 DECIMAL(18,2))
+
+		INSERT INTO #T4(ACCOUNTID,NAME,TYPE,AMOUNT4)
+		(
+		SELECT A.ID AS ACCOUNTID,NAME,TYPE,ISNULL(SUM(AMOUNT),0) AS AMOUNT2 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),GETDATE(),108)
+						AND DC.STATUS='TRUE' AND PAYMENTID IS NULL AND DELIVERYID IS NULL AND TYPE='Cr' AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+		
+		CREATE TABLE #FINAL (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT5 DECIMAL(18,2))
+
+		INSERT INTO #FINAL(ACCOUNTID,NAME,TYPE,AMOUNT5)
+		(
+		SELECT CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN A.ACCOUNTID ELSE D.ACCOUNTID END AS ACCOUNTID
+		,CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN A.NAME ELSE D.NAME END AS NAME
+		,CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN A.TYPE ELSE D.TYPE END AS TYPE
+		,CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN ISNULL(A.AMOUNT2,0)-ISNULL(D.AMOUNT4,0) ELSE ISNULL(D.AMOUNT4,0)-ISNULL(A.AMOUNT2,0) END AS AMOUNT5 
+		FROM #T2 A FULL JOIN #T4 D ON A.NAME=D.NAME
+		)
+
+		DECLARE @A VARCHAR(2000)
+
+		SET @A='WITH CTE AS (SELECT ''0'' AS ACCOUNTID,OP.NAME AS NAME,CASE WHEN OP.AMOUNT>OP1.AMOUNT1 THEN OP.TYPE ELSE OP1.TYPE END AS TYPE,
+				CASE WHEN OP.AMOUNT>OP1.AMOUNT1 THEN (OP.AMOUNT-OP1.AMOUNT1) ELSE (OP1.AMOUNT1-OP.AMOUNT) END AS AMOUNT
+				FROM #OLDOP OP JOIN #OLDOP1 OP1 ON OP.NAME=OP1.NAME UNION ALL
+				SELECT A.ACCOUNTID,A.NAME,A.TYPE, CASE WHEN (ISNULL(A.AMOUNT,0))>(ISNULL(B.AMOUNT1,0))
+				THEN ((ISNULL(A.AMOUNT,0))-(ISNULL(B.AMOUNT1,0))) ELSE ((ISNULL(B.AMOUNT1,0))-(ISNULL(A.AMOUNT,0))) END AS AMOUNT 
+		FROM #T A JOIN #T1 B ON A.NAME=B.NAME GROUP BY A.ACCOUNTID,A.NAME,A.AMOUNT,B.AMOUNT1,A.TYPE HAVING 
+		((ISNULL(A.AMOUNT,0))-(ISNULL(B.AMOUNT1,0)))>0 UNION ALL SELECT C.ACCOUNTID,C.NAME,C.TYPE,C.AMOUNT5 AS AMOUNT
+		FROM #FINAL C UNION ALL SELECT ''0'' AS ACCOUNTID,''DDS'' AS NAME,''Cr'' AS TYPE,SUM(D.AMOUNT3) AS AMOUNT
+		FROM #T3 D)
+	
+			SELECT ACCOUNTID,NAME,TYPE,AMOUNT FROM CTE ORDER BY CASE WHEN NAME!=''OPENING BALANCE'' THEN ''OPENING BALANCE''
+			END,NAME ASC'
+
+		EXEC(@A)
+--		SELECT * FROM #T
+--		SELECT * FROM #T1
+--		SELECT * FROM #T2
+--		SELECT * FROM #T3
+--		SELECT * FROM #T4
+--		SELECT * FROM #OLDOP
+--		SELECT * FROM #OLDOP1
+		DROP TABLE #OLDOP
+		DROP TABLE #OLDOP1
+		DROP TABLE #T
+		DROP TABLE #T1
+		DROP TABLE #T2
+		DROP TABLE #T3
+		DROP TABLE #T4
+		DROP TABLE #FINAL
+	END
+
+
+

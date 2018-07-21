@@ -1,0 +1,20 @@
+﻿body 
+{
+font-family:Times New Roman;
+	margin:0px;
+	padding:0px;
+}
+
+.Header
+{ 
+	text-align:center;
+            color:#A1A1A2;  
+            background-color:#E6E6E7;
+            font-size:large;  
+            padding:5px 15px 5px 15px;  
+            border:solid 1px #828289;               
+            height:25px;  
+            cursor:pointer;  
+            font-family:Verdana;  
+            font-weight:bold;             
+}

@@ -1,0 +1,7 @@
+select * from Payments
+;With cte As
+(Select id, ReceiptNo, 
+  Row_Number() Over (Order By id) As rn
+From Payments)
+Update cte Set ReceiptNo= rn;
+

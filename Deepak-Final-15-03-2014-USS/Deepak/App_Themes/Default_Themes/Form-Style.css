@@ -1,0 +1,1070 @@
+body
+{
+	margin:0 auto;
+	padding: 0;
+	font-size:14px;
+	font-weight:bold;
+	font-family:"Trebuchet MS",arial, verdana, helvetica;
+	color:#003f81;
+	background-color:#eeede9;
+}
+body a 
+{
+	color:#800000;
+	text-decoration:none;
+}
+.PageTitle
+{
+	float:left;
+	font-size:20px;
+	font-weight:bold;
+	text-align:center;
+	width:250px;
+	margin-left:-520px;
+}
+#Page
+{
+    width:82%;
+	float:left;
+/*	padding-left:100px;*/
+    margin:auto;
+}
+#Page_Single
+{
+	float:left;
+/*	padding:-21%;
+	margin-top:2%;
+	padding-left:0%;*/
+	width:82%;
+	background:#eeede9;
+}
+/*#PageTitle {	
+	font-family:"Trebuchet MS",arial, verdana, helvetica;
+	font-size:22px;
+	font-weight:bold;
+	text-align:center;
+	margin-top:10px;
+	margin-bottom:10px;
+	margin-left:110%;
+	color:#167A06;
+}*/
+img
+{
+	width:122%;
+}
+#banner-img
+{
+	width:100%;
+	margin:0 auto;
+	margin-left:0px;
+}
+#AccDenied
+{
+	width:15%;
+	margin-left:50%;
+	margin-top:8%;	
+}
+div.single-col
+{
+	float:left;
+    width:97%;
+	margin-top:13%;	
+	margin-left:13%;
+	margin-bottom:4%;
+/*	background-color:#f9f287;*/
+	border:1px solid #003f81;
+}
+div.two-col
+{
+    float:left;
+	width:97%;
+	margin-top:10%;
+	margin-left:13%;
+	margin-bottom:1%;
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+div.two-col1
+{
+    float:left;
+	width:84%;
+	margin-top:-2%;
+	margin-left:11%;
+	margin-bottom:1%;
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+div.three-col-new
+{
+    float:left;
+	width:97%;
+	margin-left:12.9%;
+	margin-bottom:4%;
+	margin-top:10%;	
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+div.three-col-new1
+{
+    float:left;
+	width:97%;
+	margin-left:12.9%;
+	margin-bottom:4%;
+	margin-top:10%;	
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+.three-col-new1 .ControlsWrapper1
+{
+float:left;width:10%; margin-left:1%; margin-right:1%;
+}
+div.three-col-new1 .ControlsWrapper1
+{
+    width:42%;
+/*	margin-left:-13%;*/
+	margin-right:-13%
+}
+.three-col-new1 .ControlsWrapper1 div span
+{
+    width:35%;
+    margin:0 3% 0 0%;
+}
+div.three-col-new1 .ControlsWrapper1 div textarea{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+width:38%;
+}
+.three-col-new1 .ControlsWrapper1 select
+{
+   width:38%; margin-left:1%;margin-top:2%;
+}
+.three-col-new1 .ControlsWrapper1 div input
+{	height: 20px;
+}
+.three-col-new .ControlsWrapper1
+{
+float:left;width:10%; margin-left:1%; margin-right:1%;
+}
+div.three-col-new .ControlsWrapper1
+{
+    width:42%;
+/*	margin-left:-13%;*/
+	margin-right:-13%
+}
+.three-col-new .ControlsWrapper1 div span
+{
+    width:37%;
+    margin:0 3% 0 0%;
+}
+div.three-col-new .ControlsWrapper1 div textarea{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+width:38%;
+}
+.three-col-new .ControlsWrapper1 select
+{
+   width:38%; margin-left:1%;margin-top:2%;
+}
+.three-col-new .ControlsWrapper1 div input
+{	height: 20px;
+}
+
+div.three-col
+{
+    float:left;
+	width:97%;
+	margin-left:13%;
+	margin-bottom:4%;
+	margin-top:10%;
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+div.four-col
+{
+    float:left;
+	width:97%;
+	margin-left:25.5%;
+	margin-bottom:4%;
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+
+div.three-col-view
+{
+    float:left;
+	width:97%;
+	margin-left:13%;
+	margin-bottom:4%;
+	margin-top:1.5%;
+/*	background:#eeede9;*/
+	border:1px solid #003f81;
+}
+div.ControlsWrapper
+{
+	float:left;
+	width:50%;
+	margin-top:2%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper-three-space
+{
+	float:left;
+	width:50%;
+	margin-top:2%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper-View
+{
+	float:left;
+	width:30%;
+	margin-top:2%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper1
+{
+	float:left;
+	width:50%;
+	margin-top:2%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper-three-space1
+{
+	float:left;
+	width:50%;
+	margin-top:2%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper2
+{
+	float:left;
+	width:50%;
+	margin-top:2%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper3
+{
+	float:left;
+	width:50%;
+	margin-top:2%;
+	margin-left:6%;
+	margin-bottom:3%;
+}
+div.ControlsWrapper_view
+{
+	float:left;
+	width:30%;
+	margin-top:1%;
+	margin-bottom:1%;
+}
+div.ControlsWrapper-three-space {float:left;width:40%;padding-left:0%;padding-right:10.7%;}
+div.ControlsWrapper {float:left;width:40%;margin-left:4%;padding-right:9%;}
+div.ControlsWrapper-View {float:left;width:40%;margin-left:4%;padding-right:9%;}
+div.ControlsWrapper1 {float:left;width:40%;margin-left:2%;padding-right:2%;}
+div.ControlsWrapper-three-space1 {float:left;width:40%;margin-left:2%;padding-right:2%;}
+.single-col .ControlsWrapper
+{
+    float:left;width:30%;
+}
+.single-col .ControlsWrapper1
+{
+    float:left;width:30%;
+}
+
+.two-col .ControlsWrapper
+{
+    float:left;width:33%;
+}
+.two-col .ControlsWrapper1
+{
+    float:left;width:33%;
+}
+.two-col .ControlsWrapper2
+{
+    float:left;width:33%;
+}
+.two-col .ControlsWrapper3
+{
+    float:left;width:33%;
+}
+.two-col .ControlsWrapper_view
+{
+    float:left;width:30%;
+}
+.three-col .ControlsWrapper
+{
+    float:left;width:20%; margin-left:1%; margin-right:1%;
+}
+.three-col .ControlsWrappernew
+{
+    float:left;width:20%; margin-left:26%; margin-right:1%;
+}
+.three-col-view .ControlsWrapper
+{
+    float:left;width:20%; margin-left:1%; margin-right:1%;
+}
+.three-col-pro .ControlsWrapper-three-space
+{
+    float:left;width:20%; margin-left:1%; margin-right:1%;
+}
+.two-col .ControlsWrapper1
+{
+    float:left;width:33%;
+}
+.three-col-view .ControlsWrapper_view
+{
+    float:left;width:30%;
+}
+.four-col .ControlsWrapper
+{
+    float:left;width:28%;
+}
+div.single-col .ControlsWrapper
+{
+    width:60%;
+}
+div.single-col .ControlsWrapper1
+{
+    width:70%;
+}
+div.two-col .ControlsWrapper1
+{
+    width:50%;
+	margin-left:-3%;
+}
+div.two-col .ControlsWrapper2
+{
+    width:38%;
+}
+div.two-col .ControlsWrapper3
+{
+    width:42%;
+}
+div.two-col .ControlsWrapper_view
+{
+    width:30%;
+}
+div.three-col .ControlsWrapper_view, div.three-col-pro .ControlsWrapper_view
+{
+    width:41%; margin-left:-1%; margin-right:-15%;
+}
+.ControlsWrapper div  {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:190%;
+	margin-left:0%;
+}
+.ControlsWrapper-three-space div  {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:190%;
+	margin-left:0%;
+}
+.ControlsWrapper-View  {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:1290%;
+	margin-left:0%;
+}
+.ControlsWrapper1 {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:190%;
+	margin-left:0%;
+}
+.ControlsWrapper2 {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:190%;
+	margin-left:0%;
+}
+.ControlsWrapper3 {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:190%;
+	margin-left:0%;
+}
+.ControlsWrapper_view {
+	float:left;margin:0;
+	padding:5px 0 0;
+	width:190%;
+	margin-left:0%;
+}
+.ControlsWrapper div span {
+	float:left;
+	margin:0 1% 0 0;
+	padding:0% 0px 0px 0px;
+	text-align:right;
+	width:30%;
+	font-weight:bold;
+}
+.ControlsWrapper-three-space  div span {
+	float:left;
+	margin:0 1% 0 0;
+	padding:0% 0px 0px 0px;
+	text-align:right;
+	width:30%;
+	font-weight:bold;
+}
+.ControlsWrapper1 div span, .ControlsWrapper_view div span, .ControlsWrapper2 div span, .ControlsWrapper3 div span {
+	float:left;
+	margin:0 1% 0 0;
+	padding:1% 0px 0px 0px;
+	text-align:right;
+	width:32%;
+	font-weight:bold;
+}
+.single-col .ControlsWrapper div span
+{
+    width:30%;
+	margin:0 3% 0 0;
+}
+.single-col .ControlsWrapper1 div span
+{
+    width:50%;
+	margin:0 3% 0 0;
+}
+.two-col .ControlsWrapper div span
+{
+    width:30%;
+    margin:0 3% 0 0%;
+}
+.two-col .ControlsWrapper1 div span
+{
+    width:45%;
+    margin:0 3% 0 0%;
+}
+.two-col .ControlsWrapper2 div span
+{
+    width:45%;
+    margin:0 3% 0 0%;
+}
+.two-col .ControlsWrapper3 div span
+{
+    width:40%;
+    margin:0 3% 0 0%;
+}
+.two-col .ControlsWrapper_view div span
+{
+    width:45%;
+    margin:0 3% 0 0%;
+}
+.three-col .ControlsWrapper div span
+{
+    width:35%;
+    margin:0 3% 0 0%;
+}
+.three-col-view .ControlsWrapper div span
+{
+    width:35%;
+    margin:0 3% 0 0%;
+}
+.three-col-pro .ControlsWrapper-three-space div span
+{
+    width:35%;
+    margin:0 3% 0 0%;
+}
+.three-col .ControlsWrapper_view div span
+{
+    width:25%;
+    margin:0 0% 0 0%;
+}
+.four-col .ControlsWrapper div span
+{
+    width:20%;
+    margin:0 3% 0 0%;
+}
+.three-col-pro .ControlsWrapper div span
+{
+    width:35%;
+    margin:0 3% 0 0%;
+}
+div.ControlsWrapper-three-space div input{
+border:1px solid #92B7CB;
+float:left;
+margin:0;
+width:10%;
+height:24px;
+}
+div.ControlsWrapper div input{
+border:1px solid #92B7CB;
+float:left;
+margin:0;
+width:10%;
+height:24px;
+}
+.ControlsWrapper1 div input{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+/*width:10%;*/
+}
+.ControlsWrapper2 div input{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+width:45%;
+height:24px;
+}
+.ControlsWrapper3 div input{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+width:45%;
+height:24px;
+}
+.ControlsWrapper_view div input{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+width:27%;
+height:24px;
+}
+div.single-col .ControlsWrapper div textarea{
+border:1px solid #92B7CB;
+float:left;
+margin:0;
+width:15%;
+height:24px;
+}
+div.two-col .ControlsWrapper1 div textarea{
+border:1px solid #92B7CB;
+float:left;
+margin:1%;
+width:36%;
+}
+.single-col .ControlsWrapper div input
+{
+   width:16%; 
+}
+.single-col .ControlsWrapper1 div input
+{
+   width:24%; 
+}
+
+.single-col .ControlsWrapper div select
+{
+   width:16%; 
+}
+.single-col .ControlsWrapper1 select
+{
+   width:27.5%; margin-left:1%;margin-top:1%;
+}
+.two-col .ControlsWrapper div input
+{
+   width:30%; 
+}
+.two-col .ControlsWrapper1 select
+{
+   width:36%; margin-left:1%;margin-top:2%;
+}
+.two-col .ControlsWrapper_view div input
+{
+   width:45%; 
+}
+.two-col .ControlsWrapper_view select
+{
+   width:46%; margin-left:1%;
+}
+.two-col .ControlsWrapper1 div input
+{
+   width:35%; 
+}
+.three-col .ControlsWrapper div input
+{
+   width:45%; 
+}
+.three-col-view .ControlsWrapper div input
+{
+   width:45%; 
+}
+.three-col-pro .ControlsWrapper-three-space div input
+{
+   width:40%; 
+}
+.three-col-pro .ControlsWrapper-three-space div textarea
+{
+   width:40%; 
+}
+.three-col .ControlsWrapper div select
+{
+   width:45%; 
+}
+.three-col .ControlsWrapper div textarea
+{
+	width:45%;
+}
+.three-col .ControlsWrapper_view select, .three-col-pro .ControlsWrapper_view select
+{
+   width:54%; margin-left:1%;
+}
+.four-col .ControlsWrapper div input
+{
+   width:25%; 
+}
+.three-col-pro .ControlsWrapper div input
+{
+   width:28%; 
+}
+.buttonimage
+{
+	margin-left:10%;
+}
+/*-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+																	For Radio Button
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+.single-col .ButtonControlsWrapper div input
+{
+   width:15%; 
+   border:0;
+   background-color:#eeede9;
+}
+/*-----------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+div.single-col-button
+{
+    float:left;
+	width:97%;
+	margin-top:-2%;
+	margin-left:13%;
+	margin-bottom:1%;
+	border:1px solid #003f81;
+}
+div.two-col-button
+{
+    float:left;
+	width:97%;
+	margin-left:13%;
+	margin-bottom:1%;
+	border:1px solid #003f81;
+}
+div.three-col-button
+{
+    float:left;
+	width:97%;
+	margin-left:13%;
+	margin-top:-2%;
+	margin-bottom:1%;
+	border:1px solid #003f81;
+}
+.ButtonsWrapper
+{
+	float:left;
+	margin-top:1%;
+    text-align:center;  
+    margin-left:55%; 
+}
+.ButtonsWrapper-View
+{
+	float:left;
+	margin-top:1%;
+    text-align:center;  
+    margin-left:55%; 
+}
+
+.ButtonsWrapper input
+{
+	float:left;
+    margin-left:1%;
+	
+}
+.btnstyle
+{
+	float:left;
+  	color:#FFF;
+	font-weight:bold;
+	background-color:#012693;
+	border:1px solid #f9f287;
+	width:15%;
+  	margin-left:0%;
+	margin:1%;
+	font-size:16px;
+}
+.ControlsTitle
+{
+    float:left;
+    font-weight:bold;
+    margin-bottom:10px;
+    width:95%;
+    text-align:right;
+	color:#167A06;
+	font-size:18px;
+}
+.gridcol
+{
+	width:50.1%;
+	margin-left:10%;
+	margin-top:0%;
+	margin-bottom:2%;
+	text-transform:uppercase;
+}
+.gridcolnew
+{
+	width:50.1%;
+	margin-left:18% !important;
+	margin-top:0%;
+	margin-bottom:2%;
+	text-transform:uppercase;
+}
+.gridcolnew1
+{
+	width:50.1%;
+	margin-left:25%;
+	margin-top:0%;
+	margin-bottom:2%;
+	text-transform:uppercase;
+}
+.gridcolnew2
+{
+	width:50.1%;
+	margin-left:50%;
+	margin-top:0%;
+	margin-bottom:2%;
+	text-transform:uppercase;
+}
+.gridcol td {
+	text-align:center;
+    padding: 5px; 
+    border: solid 1px #75a1de; 
+    color: #717171; 
+}
+.gridcol th { 
+    padding: 4px 8px; 
+    color: #003f81;
+    border: solid 1px #003f81; 
+    font-size: 0.8em; 
+    background:#e9edf2;
+
+}
+.gridcol a { color: #666; text-decoration: none; }
+.gridcol input
+{
+    border: solid 1px #75a1de; 	
+}
+.gridcol_Accounts
+{
+	width:100%;
+	margin-left:0%;
+	margin-top:0%;
+	margin-bottom:2%;
+	text-transform:uppercase;
+}
+.gridcol_Accounts td {
+	text-align:left;
+    padding: 5px; 
+    border: solid 1px #75a1de; 
+    color: #717171; 
+}
+.gridcol_Accounts th { 
+    padding: 4px 8px; 
+    color: #003f81;
+    border: solid 1px #003f81; 
+    font-size: 0.9em; 
+    background:#e9edf2;
+}
+.gridcol_Accounts a { color: #666; text-decoration: none; }
+.gridcol_Accounts input
+{
+    border: solid 1px #75a1de; 	
+}
+.textalign
+{
+	text-align:right;
+}
+.gridcol_inside_page
+{
+	width:50.1%;
+	margin-left:18.5%;
+	margin-top:0%;
+	margin-bottom:1%;
+	/*border:1px solid #800000;*/
+	text-transform:uppercase;
+}
+.gridcol_inside_page td {
+	text-align:center;
+    padding: 5px; 
+    border: solid 1px #75a1de; 
+    color: #717171; 
+
+}
+.gridcol_inside_page th { 
+    padding: 4px 12px; 
+    color: #003f81;
+    border: solid 1px #003f81; 
+    font-size: 0.8em; 
+    background:#e9edf2;
+}
+.gridcol_Outside
+{
+	width:48.1%;
+	margin-left:5%;
+	margin-top:0%;
+	margin-bottom:5%;
+	text-transform:uppercase;
+}
+.gridcol_Outside td {
+	text-align:center;
+    padding: 5px; 
+    border: solid 1px #75a1de; 
+    color: #717171; 
+
+}
+.gridcol_Outside th { 
+    padding: 4px 8px; 
+    color: #003f81;
+    border: solid 1px #003f81; 
+    font-size: 0.7em; 
+    background:#e9edf2;
+}
+.gridcol_Outside a { color: #666; text-decoration: none; }
+.gridcol_Outside input
+{
+    border: solid 1px #75a1de; 	
+}
+
+.gridcol_inside_page a { color: #666; text-decoration: none; }
+.gridcol_inside_page input
+{
+    border: solid 1px #75a1de; 	
+}
+.gridcol_New
+{
+	width:98.1%;
+	margin-left:25.5%;
+	margin-top:0%;
+	margin-bottom:2%;
+	/*border:1px solid #800000;*/
+	text-transform:uppercase;
+}
+.btnstyle_Enq
+{
+  	color:#FFF;
+	font-weight:bold;
+	background-color:#167A06;
+	border:1px solid #f9f287;
+	width:37%;
+  	margin-left:73%;
+	margin-top:3%;
+	font-size:16px;
+}
+.btnstyle_Enqeue
+{
+  	color:#FFF;
+	font-weight:bold;
+	background-color:#167A06;
+	border:1px solid #f9f287;
+	width:37%;
+  	margin-left:53%;
+	margin-top:3%;
+	font-size:16px;
+}
+.btn_spaces
+{
+	margin-left:33%;
+	margin-top:-0.2%;
+}
+/*.btn_spacesnew
+{
+	margin-left:44% !important;
+	margin-top:-0.2%;
+}*/
+.btn_spacesnew
+{
+	margin-left:52% !important;
+	margin-top:-0.2%;
+}
+.btn_spaces-View
+{
+	margin-left:18%;
+	margin-top:-0.2%;
+}
+.btn_spaces_big
+{
+	margin-left:12%;
+}
+.btn_spaces_inv
+{
+	margin-left:4%;
+}
+.btn_spaces_inv .btnstyle
+{
+	float:left;
+  	color:#FFF;
+	font-weight:bold;
+	background-color:#167A06;
+	border:1px solid #f9f287;
+	width:14%;
+  	margin-left:0%;
+	margin:1%;
+	font-size:16px;
+}
+.btn_spaces_single
+{
+	margin-left:42%;
+}
+input
+{
+	/*width:50%;*/
+	float:left;
+	background:#FFFFFF;
+	color:#24106f;
+	font-weight:bold;
+	font-family:"Trebuchet MS",arial, verdana, helvetica;
+	text-transform:uppercase;
+	font-size:16px;
+}
+textarea
+{
+	width:30%;
+	font-family:"Trebuchet MS",arial, verdana, helvetica;
+	font-size: 16px;
+	font-weight:bold;
+	color:#24106f;
+	text-transform:uppercase;
+}
+select
+{
+	background:#FFFFFF;
+	font-family:"Trebuchet MS",arial, verdana, helvetica;
+	font-size: 16px;
+	text-transform:uppercase;
+	font-weight: bold;
+	color:#24106f;
+	width:30%;
+} 
+radio{ background:#999999;}
+.wrapcells
+{
+
+}
+
+.clear{clear:both;}
+.mGrid { 
+    width: 90%; 
+    background-color: #fff; 
+    margin: 5px 0 10px 0; 
+    border: solid 1px #525252; 
+    border-collapse:collapse; 
+
+    
+}
+.mGrid td {
+	text-align:center;
+    padding: 5px; 
+    border: solid 1px #75a1de; 
+    color: #717171; 
+
+
+}
+.mGrid th { 
+    padding: 4px 2px; 
+    color: #fff;
+	background:url(Images/menu_t.jpg);
+/*    background: #424242 url(App_Themes/DefaultTheme/Images/menu_t.png) repeat-x top; */
+    border-left: solid 1px #5e87c7; 
+    font-size: 0.9em; 
+}
+.mGrid .alt { background: url(Images/menu_t.jpg);}
+.mGrid .pgr { background: url(Images/menu_t.jpg);}
+.mGrid .pgr table { margin: 5px 0; }
+.mGrid .pgr td { 
+    border-width: 0; 
+    padding: 0 6px; 
+    border-left: solid 1px #666; 
+    font-weight: bold; 
+    color: #fff; 
+    line-height: 12px; 
+ }   
+.mGrid .pgr a { color: #666; text-decoration: none; }
+.mGrid .pgr a:hover { color: #000; text-decoration: none; }
+
+.mGrid .footer {
+width: 100%; background: url(Images/menu_t.jpg) repeat-x top;
+}
+.GridInput
+{
+	width:98%;
+	float:left;
+	background:#f5f6f8;
+	color:#24106f;
+	font-weight:bold;
+	font-family:"Trebuchet MS",arial, verdana, helvetica;
+	text-transform:uppercase;
+	font-size:12px;
+	border:1px solid #92b7cb;
+}
+.linkbtn
+{
+	margin-left:15%;
+	margin-right:10%;	
+}
+.cal_Theme .ajax__calendar_container   {
+    background-color: #f5f6f8;
+    border:solid 1px #cccccc;
+}
+
+.cal_Theme .ajax__calendar_header  {
+    background-color: #f5f6f8;
+    margin-bottom: 4px;
+}
+
+.cal_Theme .ajax__calendar_title,
+.cal_Theme .ajax__calendar_next,
+.cal_Theme .ajax__calendar_prev    {
+    color: #004080;
+    padding-top: 3px;
+}
+
+.cal_Theme .ajax__calendar_body    {
+    background-color: #dae9f3;
+    border: solid 1px #cccccc;
+}
+
+.cal_Theme .ajax__calendar_dayname {
+    text-align:center;
+    font-weight:bold;
+    margin-bottom: 4px;
+    margin-top: 2px;
+}
+
+.cal_Theme .ajax__calendar_day {
+    text-align:center;
+    border: solid 1px #cccccc;
+    background-color: #f5f6f8;
+    
+}
+
+.cal_Theme .ajax__calendar_hover .ajax__calendar_day,
+.cal_Theme.ajax__calendar_hover .ajax__calendar_month,
+.cal_Theme .ajax__calendar_hover .ajax__calendar_year,
+.cal_Theme .ajax__calendar_active  {
+    color: #004080;
+    font-weight: bold;
+    background-color: #ffffff;
+}
+
+.cal_Theme .ajax__calendar_today   {
+    font-weight:bold;
+}
+
+.cal_Theme .ajax__calendar_other,
+.cal_Theme .ajax__calendar_hover .ajax__calendar_today,
+.cal_Theme .ajax__calendar_hover .ajax__calendar_title {
+    color: #bbbbbb;
+}
+
+.report
+{
+	color:#000;
+	font-size:32px;
+	letter-spacing:5px;
+	font-style:normal;
+	font-weight:normal;
+}
+
+.reportdesign
+{
+	margin-left:230px;
+}
+
+

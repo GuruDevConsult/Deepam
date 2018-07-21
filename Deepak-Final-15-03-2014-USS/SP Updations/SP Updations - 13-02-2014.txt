@@ -1,0 +1,681 @@
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverySlip_View]
+(
+@LRNO INT,
+@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT 
+		LCD.ID
+		,Convert(Varchar(20),LCD.LRDate,103) as Date
+		,LCD.CustName
+		,LCD.OriCustName
+		,LCD.LRNo
+		,LCD.NoOfPackages
+		,LCD.Contents
+		,LCD.Weight as TotalWeight
+--		,ISNULL(ACI.Freight,0) as Freight
+		,ISNULL(ACI.Labour,0) as Labour
+		,ISNULL(ACI.Delivery,0) as Delivery
+		,ISNULL(ACI.Stationary,0) as Stationary
+		,ISNULL(ACI.Demurrage,0) as Demurrage
+		,ISNULL(ACI.LocalCartage,0) as LocalCartage
+		,ISNULL(ACI.ServiceTax,0) as ServiceTax
+	FROM
+		' + @DBName + '.dbo.LorryChallan LC
+	JOIN 
+		' + @DBName + '.dbo.LorryChallanDescription LCD
+	ON
+		LC.ID=LCD.LorryChallanID
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressBook AB
+	ON
+		LCD.CustName=AB.Name
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressChargesInfo ACI
+	ON
+		ACI.ID=AB.ChargesInfoID
+	WHERE
+		LRNO='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		LC.BranchName='''+@BranchName+'''
+--	AND
+--		AB.Active=''True''
+	AND
+		LC.Active=''True''
+	AND
+		LCD.Active=''True''
+
+	SELECT 
+		AFI.ID,AFI.Packings 
+	FROM
+		' + @DBName + '.dbo.LorryChallan LC
+	JOIN 
+		' + @DBName + '.dbo.LorryChallanDescription LCD
+	ON
+		LC.ID=LCD.LorryChallanID
+	JOIN
+		' + @DBName + '.dbo.AddressBook AB
+	ON
+		LCD.CustName=AB.Name
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressChargesInfo ACI
+	ON
+		ACI.ID=AB.ChargesInfoID
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressFreightInfo AFI
+	ON
+		AFI.AddressID=AB.ID
+	WHERE
+		LRNO='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		LC.BranchName='''+@BranchName+'''
+	AND
+		AB.Active=''True''
+	AND
+		LC.Active=''True''
+	AND
+		LCD.Active=''True''
+
+	
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+==============================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+ALTER PROC [dbo].[AddressFreight_U]
+@FreightID	INT
+,@AddressFreightID	INT
+,@Packings	VARCHAR(50)
+,@Weight	VARCHAR(50)
+,@Fixed		VARCHAR(50)
+,@BranchName VARCHAR(50)
+,@UserID	VARCHAR(50)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @Fix DECIMAL(18,2)
+DECLARE @Wet DECIMAL(18,2)
+
+IF(@Weight=0)
+BEGIN
+SET @Weight=0
+END
+ELSE
+BEGIN
+SET @Weight=@Weight
+END
+IF(@Fixed=0)
+BEGIN
+SET @Fixed=0
+END
+ELSE
+BEGIN
+SET @Fixed=@Fixed
+END
+
+
+BEGIN
+SET @SQLString=N'IF('''+CONVERT(VARCHAR(10),@FreightID)+'''!=0)
+		BEGIN
+			UPDATE ' + @DBName + '.dbo.AddressFreightInfo
+			SET
+				Packings='''+@Packings+'''
+				,Weight='''+CONVERT(VARCHAR(10),@Weight)+'''
+				,Fixed='''+CONVERT(VARCHAR(10),@Fixed)+'''
+				,BranchName=''' + @BranchName + '''
+				,Active=''True''
+				,UpdatedBy=''' + @UserID + '''
+				,UpdatedDate=''' + @GETDATE + '''
+			WHERE
+				ID=' + CONVERT(VARCHAR(10),@FreightID) + ' AND Active=''True''
+			
+			SELECT ''1''   
+		END
+		ELSE
+		BEGIN
+			INSERT INTO '+@DBName+'.dbo.AddressFreightInfo
+		(
+			AddressID
+			,Packings
+			,Weight
+			,Fixed
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@AddressFreightID)+'''
+			,'''+@Packings+'''
+			,'''+CONVERT(VARCHAR(10),@Weight)+'''
+			,'''+CONVERT(VARCHAR(10),@Fixed)+'''
+			,'''+@BranchName+'''
+			,''True''			
+			,'''+@UserID+'''
+			,'''+@Getdate+'''
+		)
+		
+		SELECT ''1''
+		
+		UPDATE ' + @DBName + '.dbo.AddressFreightInfo
+			SET
+				Packings='''+@Packings+'''
+				,Weight='''+CONVERT(VARCHAR(10),@Weight)+'''
+				,Fixed='''+CONVERT(VARCHAR(10),@Fixed)+'''
+				,BranchName=''' + @BranchName + '''
+				,Active=''True''
+				,UpdatedBy=''' + @UserID + '''
+				,UpdatedDate=''' + @GETDATE + '''
+			WHERE
+				ID=' + CONVERT(VARCHAR(10),@FreightID) + ' AND Active=''True''
+			
+			SELECT ''1'' 
+		END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+===================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+	/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 19-12-2011
+		DESCRIPTION : To Update the record from the AddressBook and AddressInfo Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROCEDURE [dbo].[AddressBook_U]
+(
+			@ContactID INT
+			,@AccID INT
+			,@ChargesID INT
+            ,@AddressID int		
+            ,@Category VARCHAR(20)		
+            ,@Address VARCHAR(50)
+		    ,@PinCode INT
+		    ,@City VARCHAR(20)
+            ,@Name varchar(30) 
+			,@SurName varchar(30) 
+			,@OriCustName varchar(30) 
+			,@GroupName varchar(30)   
+			,@GroupID INT   
+			,@AgentCode varchar(30)      
+            ,@PhonePrime varchar(20)
+            ,@PhoneSecondary varchar(20)
+			,@Mob1 VARCHAR(15)
+			,@Mob2 VARCHAR(15)
+            ,@EmailPrime varchar(40)
+            ,@EmailSecondary varchar(40)
+            ,@Website varchar(50)
+            ,@Fax varchar(30)
+            ,@TINNo varchar(30)
+            ,@CSTNo varchar(20)
+            ,@Areacode varchar(20)
+			,@Labour DECIMAL(18,2)
+			,@Delivery DECIMAL(18,2)
+			,@Stationary DECIMAL(18,2)
+			,@Demurrage DECIMAL(18,2)
+			,@LocalCartage DECIMAL(18,2)
+			,@ServiceTax DECIMAL(18,2)
+			,@BranchName varchar(50)
+		    ,@UserID varchar(25)
+)
+AS
+
+DECLARE @ChargesInfoID INT
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+BEGIN
+SET @SQLString=N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@AddressID) + ''' AND Active=''True'')
+BEGIN	
+	if('''+ CONVERT(VARCHAR(15),@PinCode) + ''' != 0)
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressInfo
+	SET
+				Address=''' + Upper(@Address) + ''' 
+			   ,PinCode=''' + CONVERT(VARCHAR(15),@PinCode) + '''
+			   ,City=''' + Upper(@City) + '''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' +  CONVERT(VARCHAR(10),@AddressID) + ''' AND Active=''True''   
+	END
+ELSE
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressInfo
+	SET
+				Address=''' + Upper(@Address) + ''' 
+
+			   ,City=''' + Upper(@City) + '''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' + CONVERT(VARCHAR(10),@AddressID) + ''' AND Active=''True''   
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+BEGIN
+SET @SQLString=N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressChargesInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@ChargesID) + ''' AND Active=''True'')
+BEGIN	
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressChargesInfo
+	SET
+			   Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			   ,Delivery='''+CONVERT(VARCHAR(10),@Delivery)+'''
+			   ,Stationary='''+CONVERT(VARCHAR(10),@Stationary)+'''
+			   ,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			   ,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			   ,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' + CONVERT(VARCHAR(10),@ChargesID) + ''' AND Active=''True''   
+	END
+END'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+SET @SQLString=N'BEGIN IF NOT EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressChargesInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@ChargesID) + ''' AND Active=''True'')
+		INSERT INTO ' +@DBName+'.dbo.AddressChargesInfo
+		(
+					Labour 
+					,Delivery
+					,Stationary
+					,Demurrage
+					,LocalCartage
+					,ServiceTax
+					,BranchName
+					,CreatedBy
+					,CreatedDate
+					,Active
+		)
+		VALUES
+		(
+					'''+CONVERT(VARCHAR(10),@Labour)+'''
+					,'''+CONVERT(VARCHAR(10),@Delivery)+'''
+					,'''+CONVERT(VARCHAR(10),@Stationary)+'''
+					,'''+CONVERT(VARCHAR(10),@Demurrage)+'''
+					,'''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+					,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+					,'''+@BranchName+''' 
+					,'''+@UserID+'''
+					,'''+@GETDATE+'''
+					,''True''
+		)
+	END
+
+SELECT @ChargesInfoID =SCOPE_IDENTITY()'
+EXEC sp_executesql @SQLString,N'@ChargesInfoID INTEGER OUTPUT', @ChargesInfoID OUTPUT
+
+
+BEGIN
+SET @SQLString = N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressBook WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(10),@ContactID) + ''' AND Active=''True'')
+BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressBook
+	SET				
+            Name=''' + UPPER(@Name) + '''
+			,SurName=''' + UPPER(@SurName) + '''
+			,OriCustName=''' + UPPER(@OriCustName) + '''
+			,ChargesInfoID=''' + CONVERT(VARCHAR(10),@ChargesInfoID) + '''
+			,AgentCode=''' + @AgentCode + '''
+			,Types=''' + @Category + '''
+			,GroupName=''' + @GroupName + '''
+		    ,PhonePrime=''' + @PhonePrime + '''
+            ,PhoneSecondary=''' + @PhoneSecondary + '''
+			,Mob1=''' + @Mob1 + '''
+			,Mob2=''' + @Mob2 + '''
+            ,EmailPrime=''' + UPPER(@EmailPrime) + '''
+            ,EmailSecondary=''' + UPPER(@EmailSecondary) + '''
+            ,Website=''' + UPPER(@Website) + '''
+            ,Fax=''' + @Fax + '''
+            ,TINNo=''' + @TINNo + '''
+            ,CSTNo=''' + @CSTNo + '''
+            ,Areacode=''' + @Areacode + '''
+			,BranchName=''' + @BranchName + '''
+		    ,Active=''True''
+		    ,UpdatedBy=''' + @UserID + '''
+		    ,UpdateDate=''' + @GETDATE + '''
+	WHERE
+			ID=''' + CONVERT(VARCHAR(10),@ContactID) + ''' AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+--SELECT '1'
+END
+	
+SET @SQLString = N'BEGIN UPDATE ' + @DBName + '_Acc.dbo.Accounts
+	SET
+		ModifyAt = ''' + @GETDATE + '''
+		,ModifyBy = ''' + @UserID + '''
+		,Name = ''' + UPPER(@Name) + '''
+		,OriCustName = ''' + UPPER(@OriCustName) + '''
+		,Status = ''1''
+		,Address = ''' + @Address + '''
+		,Pincode = ''' + CONVERT(VARCHAR(10),@Pincode) + '''
+		,City = ''' + @City + '''
+		,BranchName=''' + @BranchName + '''
+		,GroupId = ''' + CONVERT(VARCHAR(10),@GroupID) + '''
+		,IsHiddenUser = ''1''
+	WHERE
+		BranchName=''' + @BranchName + ''' AND ID=''' + CONVERT(VARCHAR(10),@AccID) + '''
+END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+END
+
+===========================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+ALTER PROC [dbo].[AddressFreight_U]
+@FreightID	INT
+,@AddressFreightID	INT
+,@Packings	VARCHAR(50)
+,@Weight	DECIMAL(18,2)
+,@Fixed		DECIMAL(18,2)
+,@BranchName VARCHAR(50)
+,@UserID	VARCHAR(50)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @Fix DECIMAL(18,2)
+DECLARE @Wet DECIMAL(18,2)
+
+IF(@Weight=0)
+BEGIN
+SET @Weight=0
+END
+ELSE
+BEGIN
+SET @Weight=@Weight
+END
+IF(@Fixed=0)
+BEGIN
+SET @Fixed=0
+END
+ELSE
+BEGIN
+SET @Fixed=@Fixed
+END
+
+
+BEGIN
+SET @SQLString=N'IF('''+CONVERT(VARCHAR(10),@FreightID)+'''!=0)
+		BEGIN
+			UPDATE ' + @DBName + '.dbo.AddressFreightInfo
+			SET
+				Packings='''+@Packings+'''
+				,Weight='''+CONVERT(VARCHAR(10),@Weight)+'''
+				,Fixed='''+CONVERT(VARCHAR(10),@Fixed)+'''
+				,BranchName=''' + @BranchName + '''
+				,Active=''True''
+				,UpdatedBy=''' + @UserID + '''
+				,UpdatedDate=''' + @GETDATE + '''
+			WHERE
+				ID=' + CONVERT(VARCHAR(10),@FreightID) + ' AND Active=''True''
+			
+			SELECT ''1''   
+		END
+		ELSE
+		BEGIN
+			INSERT INTO '+@DBName+'.dbo.AddressFreightInfo
+		(
+			AddressID
+			,Packings
+			,Weight
+			,Fixed
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@AddressFreightID)+'''
+			,'''+@Packings+'''
+			,'''+CONVERT(VARCHAR(10),@Weight)+'''
+			,'''+CONVERT(VARCHAR(10),@Fixed)+'''
+			,'''+@BranchName+'''
+			,''True''			
+			,'''+@UserID+'''
+			,'''+@Getdate+'''
+		)
+		
+		SELECT ''1''
+		
+		UPDATE ' + @DBName + '.dbo.AddressFreightInfo
+			SET
+				Packings='''+@Packings+'''
+				,Weight='''+CONVERT(VARCHAR(10),@Weight)+'''
+				,Fixed='''+CONVERT(VARCHAR(10),@Fixed)+'''
+				,BranchName=''' + @BranchName + '''
+				,Active=''True''
+				,UpdatedBy=''' + @UserID + '''
+				,UpdatedDate=''' + @GETDATE + '''
+			WHERE
+				ID=' + CONVERT(VARCHAR(10),@FreightID) + ' AND Active=''True''
+			
+			SELECT ''1'' 
+		END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+===============================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+ALTER PROC [dbo].[AddressFreight_U]
+@FreightID	INT
+,@AddressFreightID	INT
+,@Packings	VARCHAR(50)
+,@Weight	DECIMAL(18,2)
+,@Fixed		DECIMAL(18,2)
+,@BranchName VARCHAR(50)
+,@UserID	VARCHAR(50)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @Fix DECIMAL(18,2)
+DECLARE @Wet DECIMAL(18,2)
+
+IF(@Weight=0)
+BEGIN
+SET @Weight=0
+END
+ELSE
+BEGIN
+SET @Weight=@Weight
+END
+IF(@Fixed=0)
+BEGIN
+SET @Fixed=0
+END
+ELSE
+BEGIN
+SET @Fixed=@Fixed
+END
+
+
+BEGIN
+SET @SQLString=N'IF('''+CONVERT(VARCHAR(10),@FreightID)+'''!=0)
+		BEGIN
+			UPDATE ' + @DBName + '.dbo.AddressFreightInfo
+			SET
+				Packings='''+@Packings+'''
+				,Weight='''+CONVERT(VARCHAR(10),@Weight)+'''
+				,Fixed='''+CONVERT(VARCHAR(10),@Fixed)+'''
+				,BranchName=''' + @BranchName + '''
+				,Active=''True''
+				,UpdatedBy=''' + @UserID + '''
+				,UpdatedDate=''' + @GETDATE + '''
+			WHERE
+				ID=' + CONVERT(VARCHAR(10),@FreightID) + ' AND Active=''True''
+			
+			SELECT ''1''   
+		END
+		ELSE
+		BEGIN
+			INSERT INTO '+@DBName+'.dbo.AddressFreightInfo
+		(
+			AddressID
+			,Packings
+			,Weight
+			,Fixed
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@AddressFreightID)+'''
+			,'''+@Packings+'''
+			,'''+CONVERT(VARCHAR(10),@Weight)+'''
+			,'''+CONVERT(VARCHAR(10),@Fixed)+'''
+			,'''+@BranchName+'''
+			,''True''			
+			,'''+@UserID+'''
+			,'''+@Getdate+'''
+		)
+		
+		SELECT ''1''
+		
+		UPDATE ' + @DBName + '.dbo.AddressFreightInfo
+			SET
+				Packings='''+@Packings+'''
+				,Weight='''+CONVERT(VARCHAR(10),@Weight)+'''
+				,Fixed='''+CONVERT(VARCHAR(10),@Fixed)+'''
+				,BranchName=''' + @BranchName + '''
+				,Active=''True''
+				,UpdatedBy=''' + @UserID + '''
+				,UpdatedDate=''' + @GETDATE + '''
+			WHERE
+				ID=' + CONVERT(VARCHAR(10),@FreightID) + ' AND Active=''True''
+			
+			SELECT ''1'' 
+		END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+

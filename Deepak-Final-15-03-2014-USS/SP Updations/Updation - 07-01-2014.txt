@@ -1,0 +1,77 @@
+ALTER PROC DeliverySlip_Cust_Check
+(
+@CustomerName Varchar(50)
+,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+BEGIN
+	SET @SQLString = N'SELECT Name FROM ' + @DBName + '.dbo.AddressBook
+					WHERE Name='''+@CustomerName+''' AND BranchName='''+@BranchName+''' AND Active=''TRUE'''
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+==============================================================================
+
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+ALTER PROCEDURE [dbo].[USP_GetBalanceAmountByAll]      
+(  
+	@startingDate DATETIME,
+	@BranchName varchar(50) 
+)      
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+		SET @SQLString = N'SELECT DC.Accountid,A.Name, DC.Type, SUM(DC.Amount)
+				FROM ' + @DBName + '_Acc.dbo.DebitsCredits DC INNER JOIN ' + @DBName + '_Acc.dbo.Accounts A
+					ON DC.Accountid=A.id
+					WHERE convert(Varchar(10),date,101) < '''+CONVERT(VARCHAR(10),@startingDate,101)+''' 
+					and dc.status=''True'' and dc.BranchName='''+@BranchName+''' GROUP BY DC.Accountid,A.Name, DC.Type order by name'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+
+
+
+
+
+

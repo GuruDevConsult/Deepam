@@ -1,0 +1,343 @@
+------------------------
+USE [Chennai]
+GO
+/****** Object:  StoredProcedure [dbo].[BookDetails_ItemName_S]    Script Date: 03/25/2014 19:33:41 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+ALTER PROC [dbo].[BookDetails_ItemName_S]
+@BranchName	VARCHAR(50)
+as
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT
+		ID
+		,ItemName
+	FROM
+		' +@DBName+ '.dbo.ItemMaster
+	WHERE
+--		Branchname='''+@BranchName+'''
+--	AND
+		Active=''True'''
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+END
+
+
+
+
+---------------------------------------
+
+USE [Chennai]
+GO
+/****** Object:  StoredProcedure [dbo].[BookDetails_Rateselect]    Script Date: 03/25/2014 19:34:13 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+/*===========================================================
+		CREATED BY : SATHISHKUMAR.K
+		CREATED DATE : 24.03.2014
+		DESCRIPTION : Loading the amount for booking details
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROC [dbo].[BookDetails_Rateselect]
+@Consignee	VARCHAR(100),
+@BranchName	VARCHAR(50),
+@Packings VARCHAR(50)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT
+		AF.ID
+		,AF.Weight
+	FROM
+		' + @DBName + '.dbo.AddressFreightInfo AF
+    join
+          ' + @DBName + '.dbo.AddressBook AB
+    ON
+      AB.ID=AF.AddressID   
+	WHERE
+		AF.Packings='''+@Packings+'''
+    AND
+        AB.Name='''+@Consignee+''' 
+    AND
+        AF.Active=''True''
+	AND
+		AB.Active=''True'''
+ 
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+--------------------------------------------------------------------
+
+USE [Chennai]
+GO
+/****** Object:  StoredProcedure [dbo].[BookDetails_I]    Script Date: 03/25/2014 19:34:39 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROC [dbo].[BookDetails_I]
+(
+	@LRNO					varchar(30)
+	,@BookingDate			DATETIME
+	,@ConsignorID			INT
+	,@ConsigneeID			INT
+	,@StoreID				INT
+	,@InsuranceCoName		VARCHAR(30)
+	,@PolicyNo				VARCHAR(50)
+	,@Date					DATETIME
+	,@Risk					VARCHAR(50)
+	,@AgentID				INT
+	,@PFrom					VARCHAR(50)
+	,@PTo					VARCHAR(50)
+	,@FreightCharges		DECIMAL(18,2)
+	,@HandlingCharges		DECIMAL(18,2)
+	,@CartageCharges		DECIMAL(18,2)
+	,@StatisticalCharges	DECIMAL(18,2)
+	,@MiscExp				DECIMAL(18,2)
+	,@Insurance				DECIMAL(18,2)
+	,@AOC					DECIMAL(18,2)
+	,@ServiceTax			DECIMAL(18,2)
+	,@BranchName			VARCHAR(50)
+    ,@Balanceamount         DECIMAL(18,2)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+BEGIN
+DECLARE @BookDetailsID INT   
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+	
+SET @SQLString = N'IF NOT EXISTS(SELECT LRNO FROM ' + @DBName + '.dbo.BookingDetails WHERE BranchName='''+@BranchName+'''
+					 AND LRNO='''+@LRNO+''' AND Active=''True'')
+	
+	INSERT INTO '+@DBName+'.dbo.BookingDetails
+		(
+			LRNO
+			,BookingDate
+			,ConsignorID
+			,ConsigneeID
+			,AgentID
+			,StoreID
+			,DeliveryStatus
+			,Freight
+			,HandlingCharges
+			,CartageCharges
+			,StatisticalCharges
+			,MiscExp
+			,Insurance
+			,AOC
+			,ServiceTax
+			,InsuranceCoName
+			,PolicyNo
+			,PolicyDate
+			,InsuredAmt
+			,Risk
+			,StartFrom
+			,DestTo
+			,BranchName
+            ,Balanceamount
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			'''+@LRNO+'''
+			,'''+CONVERT(VARCHAR(10),@BookingDate,101)+'''
+			,'''+CONVERT(VARCHAR(10),@ConsignorID)+'''
+			,'''+CONVERT(VARCHAR(10),@ConsigneeID)+'''
+			,'''+CONVERT(VARCHAR(10),@AgentID)+'''
+			,'''+CONVERT(VARCHAR(10),@StoreID)+'''
+			,''False''
+			,'''+CONVERT(VARCHAR(10),@FreightCharges)+'''
+			,'''+CONVERT(VARCHAR(10),@HandlingCharges)+'''
+			,'''+CONVERT(VARCHAR(10),@CartageCharges)+'''
+			,'''+CONVERT(VARCHAR(10),@StatisticalCharges)+'''
+			,'''+CONVERT(VARCHAR(10),@MiscExp)+'''
+			,'''+CONVERT(VARCHAR(10),@Insurance)+'''
+			,'''+CONVERT(VARCHAR(10),@AOC)+'''
+			,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			,'''+@InsuranceCoName+'''
+			,'''+@PolicyNo+'''
+			,'''+CONVERT(VARCHAR(10),@Date,101)+'''
+			,'''+CONVERT(VARCHAR(10),@Insurance)+'''
+			,'''+@Risk+'''
+			,'''+@PFrom+'''
+			,'''+@PTo+'''
+			,'''+@BranchName+'''
+            ,'''+CONVERT(VARCHAR(10),@Balanceamount)+'''
+			,''TRUE''		
+			,'''+@UserID+'''
+			,'''+@GETDATE+'''
+		);
+  SELECT @BookDetailsID = SCOPE_IDENTITY()'
+
+EXEC sp_executesql @SQLString,N'@BookDetailsID INTEGER OUTPUT', @BookDetailsID OUTPUT
+       select @bookdetailsid as d
+
+SET @SQLString = N'UPDATE 
+		' + @DBName + '.dbo.AutoGeneration
+	SET
+		BookDetails_LRNo=''' + convert(varchar(10),@LRNO) + '''
+	WHERE
+		BranchName=''' + @BranchName + ''''
+	
+  SELECT @BookDetailsID
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------
+
+USE [Chennai]
+GO
+/****** Object:  StoredProcedure [dbo].[BookDetailsItem_I]    Script Date: 03/25/2014 19:35:01 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 05-01-2012
+		DESCRIPTION : To Add Or Insert New record to the BookDetailsItem Table
+		UPDATED BY : Balakumaran N
+		UPDATED DATE : 28-05-2013
+    ============================================================*/
+
+ALTER PROCEDURE [dbo].[BookDetailsItem_I]
+(
+	@BookDetailsID			INT
+	,@NoOfPack				VARCHAR(30)
+	,@ItemName			    VARCHAR(50)
+    ,@Packings              VARCHAR(30)
+	,@Rate					DECIMAL(18,2)
+	,@ActWeight				DECIMAL(18,2)
+	,@ChargedWeight			DECIMAL(18,2)
+	,@Total					DECIMAL(18,2)
+	,@BranchName			VARCHAR(50)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+DECLARE @ItemMasterID INT
+SET @SQLString=N'(SELECT @ItemMasterID=ID FROM ' + @DBName + '.dbo.ItemMaster WHERE ItemName='''+@ItemName+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ItemMasterID INTEGER OUTPUT', @ItemMasterID OUTPUT
+
+BEGIN
+	SET @SQLString = N'INSERT INTO BookingDetailsItem
+		(
+			BookingDetailsID
+			,NoOfPackages
+			,ItemMasterID
+            ,Packings
+			,Rate
+			,ActualWeight
+			,ChargedWeight
+			,Total
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@BookDetailsID)+'''
+			,'''+@NoOfPack+'''
+			,'''+CONVERT(VARCHAR(10),@ItemMasterID)+'''
+            ,'''+@Packings+'''
+			,'''+CONVERT(VARCHAR(10),@Rate)+'''
+			,'''+CONVERT(VARCHAR(10),@ActWeight)+'''
+			,'''+CONVERT(VARCHAR(10),@ChargedWeight)+'''
+			,'''+CONVERT(VARCHAR(10),@Total)+'''
+			,'''+@BranchName+'''
+			,''TRUE''		
+			,'''+@UserID+'''
+			,'''+@GETDATE+'''
+		)'
+    
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+	
+SELECT '1'
+
+END
+
+
+
+
+
+
+
+

@@ -1,0 +1,3269 @@
+ALTER PROC [dbo].[DeliverySlip_U]
+(
+	@LRNO				VARCHAR(25)
+	,@MRNO				VARCHAR(25)
+	,@DeliverySlipID	INT
+	,@ActWeight			DECIMAL(18,2)
+	,@Packing			VARCHAR(25)	
+	,@PrivateMarks		VARCHAR(150)	
+	,@Freight			DECIMAL(18,2)
+	,@Labour			DECIMAL(18,2)		
+	,@DeliveryCh		DECIMAL(18,2)		
+	,@StationaryCh		DECIMAL(18,2)		
+	,@Demurrage			DECIMAL(18,2)		
+	,@LocalCartage		DECIMAL(18,2)		
+	,@ServiceTax		DECIMAL(18,2)	
+	,@Fixed				VARCHAR(50)
+	,@DeliveryDate		DATETIME
+	,@CustomerName		VARCHAR(30)
+	,@OriCustName		VARCHAR(30)
+	,@BranchName		VARCHAR(50)
+	,@UserID			VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @LorryDescID INT
+DECLARE @LDescID INT
+DECLARE @ToPay DECIMAL
+DECLARE @Amount DECIMAL
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @Amt DECIMAL
+DECLARE @ContactID INT
+DECLARE @OldAmt DECIMAL
+DECLARE @TotalBalance DECIMAL
+DECLARE @Total DECIMAL(18,2)
+DECLARE @CName VARCHAR(25)
+DECLARE @NoOfPack INT
+DECLARE @OldID INT
+
+SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+	
+IF(@Fixed='Fixed')
+	BEGIN
+		SET @TotFreight=(SELECT @NoOfPack * @Freight)
+		SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+	END
+ELSE
+	BEGIN
+		SET @TotFreight=(SELECT (@ActWeight * @Freight))
+		SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+	END
+
+SET @SQLString=N'(SELECT @CName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CName VARCHAR(20) OUTPUT', @CName OUTPUT
+
+SET @SQLString=N'(SELECT @LorryDescID=LorryChallanDescID FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LorryDescID INTEGER OUTPUT', @LorryDescID OUTPUT
+
+SET @SQLString=N'(SELECT @LDescID=ID FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='+CONVERT(VARCHAR(10),@LRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LDescID INTEGER OUTPUT', @LDescID OUTPUT
+
+--SET @TotFreight=(SELECT (@ActWeight * @Freight))
+--
+--SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax)
+
+SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+SET @SQLString=N'(SELECT @ToPay=(Amount) FROM ' + @DBName + '.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+' 
+					AND BranchName='''+@BranchName+''' AND ACTIVE=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+
+DECLARE @AccID INT
+	
+SET @SQLString=N'(SELECT @AccID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+DECLARE @AccOriCustID INT
+	
+SET @SQLString=N'(SELECT @AccOriCustID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+DECLARE @EntryITCount INT
+
+SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+DECLARE @TimeDate as datetime
+	DECLARE @Time datetime
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+IF(@OldID>=46833)
+	BEGIN
+		SET @Amount=(SELECT (@TotFreight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+	END
+ELSE
+	BEGIN
+		SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )		
+	END
+	
+
+BEGIN
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		UPDATE
+			' + @DBName +'.dbo.DeliverySlip
+		SET
+			MRNO='''+CONVERT(VARCHAR(20),@MRNO)+'''
+			,LorryChallanDescID='''+CONVERT(VARCHAR(10),@LDescID)+'''
+			,CustomerName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+			,ActualWeight='''+CONVERT(VARCHAR(10),@ActWeight)+'''
+			,Packing='''+@Packing+'''
+			,PrivateMarks='''+@PrivateMarks+'''
+			,Fixed='''+@Fixed+'''
+			,Freight='''+CONVERT(VARCHAR(10),@Freight)+'''
+			,Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			,DeliveryCh='''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+			,StationaryCh='''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+			,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			,DeliveryDate='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+			,Amount='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,Balance='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,PaymentStatus=''True''
+			,BranchName='''+@BranchName+'''
+			,UpdatedBy='''+@UserID+'''
+			,UpdatedDate='''+@GETDATE+'''
+		WHERE
+			ID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+		AND
+			Active=''True''
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+		BEGIN
+
+		IF('''+CONVERT(VARCHAR(10),@LDescID)+'''='''+CONVERT(VARCHAR(10),@LorryDescID)+''')
+			BEGIN
+
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+						,CustName='''+@CustomerName+'''
+						,OriCustName='''+@OriCustName+'''
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+		ELSE
+			BEGIN
+				UPDATE
+					' + @DBName + '.dbo.LorryChallanDescription
+				SET
+					ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+					,CustName='''+@CustomerName+'''
+					,OriCustName='''+@OriCustName+'''
+				WHERE
+					LRNo='''+@LRNO+'''
+				AND 
+					BranchName='''+@BranchName+'''
+				AND
+					Active=''True''
+				
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay=0
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+
+		IF('''+@CName+'''!=''Cancelled'')
+				BEGIN
+					
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+
+
+					UPDATE 
+						' + @DBName + '.dbo.DailyBalance
+					SET
+						ContactID='''+CONVERT(VARCHAR(10),@ContactID)+''',
+						Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+						Balance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						TotBalance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						UpdatedBy='''+@UserID+''',
+						UpdatedDate='''+@GETDATE+'''
+					WHERE
+						DeliveryId='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					AND 
+						BranchName='''+@BranchName+'''
+					AND
+						Active=''True''
+
+				END
+		ELSE
+		   BEGIN
+
+				UPDATE 
+					' + @DBName + '_Acc.dbo.Company_EntryItemCount
+				SET
+					ItemCount=ItemCount+1
+
+			IF('''+@CustomerName+'''=''Cash'')
+				BEGIN
+
+					INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+						(
+							Date
+							,AccountID
+							,AccOriCustID
+							,DeliveryID
+							,Amount
+							,BranchName
+							,CreatedAt
+							,CreatedBy
+							,Type
+							,Status
+							,Particular
+							,RelationAccount
+						)
+					   VALUES
+						(
+							'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+							,'''+CONVERT(VARCHAR(10),@AccID)+'''
+							,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+							,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+							,'''+CONVERT(VARCHAR(10),@Amount)+'''
+							,'''+@BranchName+'''
+							,'''+@GETDATE+'''
+							,'''+@UserID+'''
+							,''Cr''
+							,1
+							,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) + '''
+							,'''+@CustomerName+'''
+						)
+
+					END
+				ELSE
+					BEGIN
+						INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+							(
+								Date
+								,AccountID
+								,AccOriCustID
+								,DeliveryID
+								,Amount
+								,BranchName
+								,CreatedAt
+								,CreatedBy
+								,Type
+								,Status
+								,Particular
+								,RelationAccount
+							)
+						VALUES
+							(
+								'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+								,'''+CONVERT(VARCHAR(10),@AccID)+'''
+								,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+								,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+								,'''+CONVERT(VARCHAR(10),@Amount)+'''
+								,'''+@BranchName+'''
+								,'''+@GETDATE+'''
+								,'''+@UserID+'''
+								,''Dr''
+								,1
+								,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) +'''
+								,'''+@CustomerName+'''
+							)
+					END
+		
+	 
+
+			INSERT INTO ' + @DBName + '.dbo.DailyBalance
+				(
+					ContactID
+					,DeliveryID
+					,Date
+					,Balance
+					,TotBalance
+					,BranchName
+					,Active
+					,CreatedBy
+					,CreatedDate
+				)
+				VALUES
+				(
+					'''+CONVERT(VARCHAR(10),@ContactID)+''',
+					'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+@BranchName+''',
+					''True'',
+					'''+@UserID+''',
+					'''+@GETDATE+'''
+				)
+			END	
+	END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+END
+
+===============================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+ALTER procedure [dbo].[SP_GetEneries]    
+(    
+	@AccountId bigint,  
+	@startingDate datetime,  
+	@closingDate datetime,
+	@BranchName varchar(50)
+)    
+as    
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+begin    
+ SET @SQLString=N'select date, Particular,RelationAccount, Type, Amount from ' + @DBName + '_Acc.dbo.DebitsCredits 
+	where Accountid='''+CONVERT(VARCHAR(10),@AccountId)+'''
+	and BranchName='''+@BranchName+''' and status=''True'' and  date >= '''+CONVERT(VARCHAR(10),@startingDate,101)+'''
+	and date <='''+CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+
+	and amount>0
+	ORDER by date'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+end    
+
+==================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+ALTER PROCEDURE [dbo].[USP_GetBalanceAmountByDate]      
+(      
+ @STARTINGDATE DATETIME,          
+ @CLOSINGDATE DATETIME,
+ @BRANCHNAME VARCHAR(50)          
+)        
+AS  
+
+DECLARE @DBNAME NVARCHAR(2550)
+
+SELECT @DBNAME=(SELECT NAME
+FROM SYS.DATABASES WHERE NAME=@BRANCHNAME)
+
+DECLARE @USEANDEXECSTATMENT NVARCHAR(4000), @SQLSTRING NVARCHAR(4000)
+
+SET @USEANDEXECSTATMENT = 'USE ' + @DBNAME +' EXEC SP_EXECUTESQL @SQLSTRING'
+
+
+IF(@BRANCHNAME=@BRANCHNAME)
+	BEGIN
+		CREATE TABLE #OLDOP (NAME VARCHAR(20),TYPE VARCHAR(10),AMOUNT DECIMAL(18,2))
+
+		INSERT INTO #OLDOP(NAME,TYPE,AMOUNT)
+		(
+		SELECT 'OPENING BALANCE' AS NAME, 'Dr' AS TYPE,CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE <= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.STATUS='TRUE' AND TYPE='Dr' AND DC.BRANCHNAME=@BRANCHNAME
+
+		)
+
+		CREATE TABLE #OLDOP1 (NAME VARCHAR(20),TYPE VARCHAR(10),AMOUNT1 DECIMAL(18,2))
+
+		INSERT INTO #OLDOP1(NAME,TYPE,AMOUNT1)
+		(
+		SELECT 'OPENING BALANCE' AS NAME,'Cr' AS TYPE,CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT1 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE <=CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.STATUS='TRUE' AND TYPE='Cr' AND DC.BRANCHNAME=@BRANCHNAME AND PAYMENTID IS NULL
+
+		)	
+
+		
+		CREATE TABLE #T (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT DECIMAL(18,2))
+
+		INSERT INTO #T(ACCOUNTID,NAME,TYPE,AMOUNT)
+		(
+		SELECT A.ID AS ACCOUNTID,NAME,TYPE,CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),'23:55 PM',108)
+						AND DC.STATUS='TRUE' AND DELIVERYID IS NOT NULL AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+
+		CREATE TABLE #T1 (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT1 DECIMAL(18,2))
+
+		INSERT INTO #T1(ACCOUNTID,NAME,TYPE,AMOUNT1)
+		(
+		SELECT A.ID AS ACCOUNTID, NAME,TYPE,CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT1 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),'23:55 PM',108)
+						AND DC.STATUS='TRUE' AND PAYMENTID IS NOT NULL AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+
+		CREATE TABLE #T2 (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT2 DECIMAL(18,2))
+
+		INSERT INTO #T2(ACCOUNTID,NAME,TYPE,AMOUNT2)
+		(
+		SELECT A.ID AS ACCOUNTID,NAME,TYPE,CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT2 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),'23:55 PM',108)
+						AND DC.STATUS='TRUE' AND PAYMENTID IS NULL AND DELIVERYID IS NULL AND TYPE='Dr' AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+
+		CREATE TABLE #T3 (AMOUNT3 DECIMAL(18,2))
+
+		INSERT INTO #T3(AMOUNT3)
+		(
+		SELECT CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT3 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),'23:55 PM',108)
+						AND DC.STATUS='TRUE' AND DELIVERYID IS NOT NULL AND DC.BRANCHNAME=@BRANCHNAME 
+
+		)
+
+		CREATE TABLE #T4 (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT4 DECIMAL(18,2))
+
+		INSERT INTO #T4(ACCOUNTID,NAME,TYPE,AMOUNT4)
+		(
+		SELECT A.ID AS ACCOUNTID,NAME,TYPE,CONVERT(INT,ROUND(ISNULL(SUM(AMOUNT),NULL),0)) AS AMOUNT2 FROM DEBITSCREDITS DC INNER JOIN CHENNAI_ACC.DBO.ACCOUNTS A ON DC.ACCOUNTID=A.ID  
+		WHERE DC.DATE >= CONVERT(VARCHAR(10),@STARTINGDATE,101)
+						AND DC.DATE <=CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' +CONVERT(VARCHAR(30),'23:55 PM',108)
+						AND DC.STATUS='TRUE' AND PAYMENTID IS NULL AND DELIVERYID IS NULL AND TYPE='Cr' AND DC.BRANCHNAME=@BRANCHNAME GROUP BY A.ID,A.NAME, DC.TYPE 
+
+		)ORDER BY A.NAME ASC
+		
+		CREATE TABLE #FINAL (ACCOUNTID INT,NAME VARCHAR(50),TYPE VARCHAR(10),AMOUNT5 DECIMAL(18,2))
+
+		INSERT INTO #FINAL(ACCOUNTID,NAME,TYPE,AMOUNT5)
+		(
+		SELECT CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN A.ACCOUNTID ELSE D.ACCOUNTID END AS ACCOUNTID
+		,CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN A.NAME ELSE D.NAME END AS NAME
+		,CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN A.TYPE ELSE D.TYPE END AS TYPE
+		,CASE WHEN ISNULL(AMOUNT2,0)>ISNULL(AMOUNT4,0) THEN ISNULL(A.AMOUNT2,0)-ISNULL(D.AMOUNT4,0) ELSE ISNULL(D.AMOUNT4,0)-ISNULL(A.AMOUNT2,0) END AS AMOUNT5 
+		FROM #T2 A FULL JOIN #T4 D ON A.NAME=D.NAME
+		)
+
+		DECLARE @A VARCHAR(2000)
+
+		SET @A='WITH CTE AS (SELECT ''0'' AS ACCOUNTID,OP.NAME AS NAME,CASE WHEN OP.AMOUNT>OP1.AMOUNT1 THEN OP.TYPE ELSE OP1.TYPE END AS TYPE,
+				CASE WHEN OP.AMOUNT>OP1.AMOUNT1 THEN (OP.AMOUNT-OP1.AMOUNT1) ELSE (OP1.AMOUNT1-OP.AMOUNT) END AS AMOUNT
+				FROM #OLDOP OP JOIN #OLDOP1 OP1 ON OP.NAME=OP1.NAME UNION ALL
+				SELECT A.ACCOUNTID,A.NAME,A.TYPE, CASE WHEN (ISNULL(A.AMOUNT,0))>(ISNULL(B.AMOUNT1,0))
+				THEN ((ISNULL(A.AMOUNT,0))-(ISNULL(B.AMOUNT1,0))) ELSE ((ISNULL(B.AMOUNT1,0))-(ISNULL(A.AMOUNT,0))) END AS AMOUNT 
+		FROM #T A JOIN #T1 B ON A.NAME=B.NAME GROUP BY A.ACCOUNTID,A.NAME,A.AMOUNT,B.AMOUNT1,A.TYPE HAVING 
+		((ISNULL(A.AMOUNT,0))-(ISNULL(B.AMOUNT1,0)))>0 UNION ALL SELECT C.ACCOUNTID,C.NAME,C.TYPE,C.AMOUNT5 AS AMOUNT
+		FROM #FINAL C UNION ALL SELECT ''0'' AS ACCOUNTID,''DDS'' AS NAME,''Cr'' AS TYPE,SUM(D.AMOUNT3) AS AMOUNT
+		FROM #T3 D)
+	
+			SELECT ACCOUNTID,NAME,TYPE,AMOUNT FROM CTE ORDER BY CASE WHEN NAME!=''OPENING BALANCE'' THEN ''OPENING BALANCE''
+			END,NAME ASC'
+
+		EXEC(@A)
+--		SELECT * FROM #T
+--		SELECT * FROM #T1
+--		SELECT * FROM #T2
+--		SELECT * FROM #T3
+--		SELECT * FROM #T4
+--		SELECT * FROM #OLDOP
+--		SELECT * FROM #OLDOP1
+		DROP TABLE #OLDOP
+		DROP TABLE #OLDOP1
+		DROP TABLE #T
+		DROP TABLE #T1
+		DROP TABLE #T2
+		DROP TABLE #T3
+		DROP TABLE #T4
+		DROP TABLE #FINAL
+	END
+
+=========================================================================================================================================================================
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 18-2-2012
+		DESCRIPTION : Report for Delivery Slip OR Delivery Reciept
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROC [dbo].[DeliverReceipt_Report]
+(
+	@MRNo INT
+	,@Fixed VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @TotCh DECIMAL(18,2)
+DECLARE @TotCh1 DECIMAL(18,2)
+DECLARE @TotCh2 DECIMAL(18,2)
+DECLARE @OldFreight DECIMAL(18,2)
+DECLARE @OldService DECIMAL(18,2)
+DECLARE @NewService DECIMAL(18,2)
+DECLARE @OldDeliCh DECIMAL(18,2)
+DECLARE @NewDeliCh DECIMAL(18,2)
+DECLARE @OldTotal DECIMAL(18,2)
+DECLARE @NewFreight DECIMAL(18,2)
+DECLARE @NewFreight1 DECIMAL(18,2)
+DECLARE @CashName VARCHAR(50)
+DECLARE @OldID INT
+
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh=SUM((DS.ActualWeight*DS.Freight)+DS.Labour+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((DS.ActualWeight*DS.Freight)*(DS.ServiceTax)/100),0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh INTEGER OUTPUT', @TotCh OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh1=SUM((LCD.NoOfPackages*DS.Freight)+DS.Labour+(LCD.NoOfPackages*DS.DeliveryCh)+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((LCD.NoOfPackages*DS.Freight)*(DS.ServiceTax)/100),0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh1 INTEGER OUTPUT', @TotCh1 OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh2=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax)
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh2 INTEGER OUTPUT', @TotCh2 OUTPUT
+
+SET @SQLString=N'(SELECT @OldFreight=DS.Freight
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldFreight INTEGER OUTPUT', @OldFreight OUTPUT
+
+SET @SQLString=N'(SELECT @OldDelich=DS.DeliveryCh
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldDelich INTEGER OUTPUT', @OldDelich OUTPUT
+
+
+SET @SQLString=N'(SELECT @OldService=DS.ServiceTax
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldService INTEGER OUTPUT', @OldService OUTPUT
+
+SET @SQLString=N'(SELECT @OldTotal=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax)
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldTotal INTEGER OUTPUT', @OldTotal OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight=SUM((DS.ActualWeight*DS.Freight))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight INTEGER OUTPUT', @NewFreight OUTPUT
+
+SET @SQLString=N'(SELECT @NewService=SUM(convert(int,round(CAST(((DS.ActualWeight * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewService INTEGER OUTPUT', @NewService OUTPUT
+
+SET @SQLString=N'(SELECT @NewDeliCh=SUM((LCD.NoOfPackages*DS.DeliveryCh))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewDeliCh INTEGER OUTPUT', @NewDeliCh OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight1=SUM((LCD.NoOfPackages*DS.Freight))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight1 INTEGER OUTPUT', @NewFreight1 OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+				SET	@TotCh=@TotCh2
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@TotCh+@NewDeliCh
+				SET @OldFreight=@NewFreight
+				SET @OldService=@NewService
+				SET @OldDeliCh=@NewDeliCh
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@OldTotal
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+	END
+--ELSE
+--	BEGIN
+--		IF(@CashName!='CASH')
+--			BEGIN
+--				SET	@TotCh=@TotCh2
+--			END
+--		ELSE
+--			BEGIN
+--				SET	@TotCh=@TotCh
+--				SET @OldFreight=@OldFreight
+--			END
+--	END
+
+BEGIN
+	SET @SQLString=N'IF('''+@Fixed+'''!=''Fixed'')
+		BEGIN
+			IF('''+@CashName+'''!=''CASH'')
+				 SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,'''+CONVERT(VARCHAR(10),@OldFreight)+''' as Freight
+					,DS.Labour
+					,'''+CONVERT(VARCHAR(10),@OldDeliCh)+''' as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,'''+CONVERT(VARCHAR(10),@OldService)+''' as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			ELSE
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,DS.DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,DS.ServiceTax as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+		END
+		ELSE
+			IF('''+@CashName+'''!=''CASH'')
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,CAST(''FIXED'' as VARCHAR(10)) as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((LCD.NoOfPackages * DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,CAST((LCD.NoOfPackages * DS.DeliveryCh)as Decimal(18,2)) as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,convert(int,round(CAST(((LCD.NoOfPackages * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)) as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh1)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+======================================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverySlip_U]
+(
+	@LRNO				VARCHAR(25)
+	,@MRNO				VARCHAR(25)
+	,@DeliverySlipID	INT
+	,@ActWeight			DECIMAL(18,2)
+	,@Packing			VARCHAR(25)	
+	,@PrivateMarks		VARCHAR(150)	
+	,@Freight			DECIMAL(18,2)
+	,@Labour			DECIMAL(18,2)		
+	,@DeliveryCh		DECIMAL(18,2)		
+	,@StationaryCh		DECIMAL(18,2)		
+	,@Demurrage			DECIMAL(18,2)		
+	,@LocalCartage		DECIMAL(18,2)		
+	,@ServiceTax		DECIMAL(18,2)	
+	,@Fixed				VARCHAR(50)
+	,@DeliveryDate		DATETIME
+	,@CustomerName		VARCHAR(30)
+	,@OriCustName		VARCHAR(30)
+	,@BranchName		VARCHAR(50)
+	,@UserID			VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @LorryDescID INT
+DECLARE @LDescID INT
+DECLARE @ToPay DECIMAL
+DECLARE @Amount DECIMAL
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @TotDelivh DECIMAL(18,2)
+DECLARE @Amt DECIMAL
+DECLARE @ContactID INT
+DECLARE @OldAmt DECIMAL
+DECLARE @TotalBalance DECIMAL
+DECLARE @Total DECIMAL(18,2)
+DECLARE @CName VARCHAR(25)
+DECLARE @NoOfPack INT
+DECLARE @OldID INT
+
+SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+	
+IF(@Fixed='Fixed')
+	BEGIN
+		SET @TotFreight=(SELECT @NoOfPack * @Freight)
+		SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+ELSE
+	BEGIN
+		SET @TotFreight=(SELECT (@ActWeight * @Freight))
+		SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+
+SET @SQLString=N'(SELECT @CName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CName VARCHAR(20) OUTPUT', @CName OUTPUT
+
+SET @SQLString=N'(SELECT @LorryDescID=LorryChallanDescID FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LorryDescID INTEGER OUTPUT', @LorryDescID OUTPUT
+
+SET @SQLString=N'(SELECT @LDescID=ID FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='+CONVERT(VARCHAR(10),@LRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LDescID INTEGER OUTPUT', @LDescID OUTPUT
+
+--SET @TotFreight=(SELECT (@ActWeight * @Freight))
+--
+--SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax)
+
+SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+SET @SQLString=N'(SELECT @ToPay=(Amount) FROM ' + @DBName + '.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+' 
+					AND BranchName='''+@BranchName+''' AND ACTIVE=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+
+DECLARE @AccID INT
+	
+SET @SQLString=N'(SELECT @AccID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+DECLARE @AccOriCustID INT
+	
+SET @SQLString=N'(SELECT @AccOriCustID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+DECLARE @EntryITCount INT
+
+SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+DECLARE @TimeDate as datetime
+	DECLARE @Time datetime
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+IF(@OldID>=46833)
+	BEGIN
+		SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+	END
+ELSE
+	BEGIN
+		SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )		
+	END
+	
+
+BEGIN
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		UPDATE
+			' + @DBName +'.dbo.DeliverySlip
+		SET
+			MRNO='''+CONVERT(VARCHAR(20),@MRNO)+'''
+			,LorryChallanDescID='''+CONVERT(VARCHAR(10),@LDescID)+'''
+			,CustomerName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+			,ActualWeight='''+CONVERT(VARCHAR(10),@ActWeight)+'''
+			,Packing='''+@Packing+'''
+			,PrivateMarks='''+@PrivateMarks+'''
+			,Fixed='''+@Fixed+'''
+			,Freight='''+CONVERT(VARCHAR(10),@Freight)+'''
+			,Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			,DeliveryCh='''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+			,StationaryCh='''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+			,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			,DeliveryDate='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+			,Amount='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,Balance='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,PaymentStatus=''True''
+			,BranchName='''+@BranchName+'''
+			,UpdatedBy='''+@UserID+'''
+			,UpdatedDate='''+@GETDATE+'''
+		WHERE
+			ID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+		AND
+			Active=''True''
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+		BEGIN
+
+		IF('''+CONVERT(VARCHAR(10),@LDescID)+'''='''+CONVERT(VARCHAR(10),@LorryDescID)+''')
+			BEGIN
+
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+						,CustName='''+@CustomerName+'''
+						,OriCustName='''+@OriCustName+'''
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+		ELSE
+			BEGIN
+				UPDATE
+					' + @DBName + '.dbo.LorryChallanDescription
+				SET
+					ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+					,CustName='''+@CustomerName+'''
+					,OriCustName='''+@OriCustName+'''
+				WHERE
+					LRNo='''+@LRNO+'''
+				AND 
+					BranchName='''+@BranchName+'''
+				AND
+					Active=''True''
+				
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay=0
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+
+		IF('''+@CName+'''!=''Cancelled'')
+				BEGIN
+					
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+
+
+					UPDATE 
+						' + @DBName + '.dbo.DailyBalance
+					SET
+						ContactID='''+CONVERT(VARCHAR(10),@ContactID)+''',
+						Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+						Balance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						TotBalance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						UpdatedBy='''+@UserID+''',
+						UpdatedDate='''+@GETDATE+'''
+					WHERE
+						DeliveryId='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					AND 
+						BranchName='''+@BranchName+'''
+					AND
+						Active=''True''
+
+				END
+		ELSE
+		   BEGIN
+
+				UPDATE 
+					' + @DBName + '_Acc.dbo.Company_EntryItemCount
+				SET
+					ItemCount=ItemCount+1
+
+			IF('''+@CustomerName+'''=''Cash'')
+				BEGIN
+
+					INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+						(
+							Date
+							,AccountID
+							,AccOriCustID
+							,DeliveryID
+							,Amount
+							,BranchName
+							,CreatedAt
+							,CreatedBy
+							,Type
+							,Status
+							,Particular
+							,RelationAccount
+						)
+					   VALUES
+						(
+							'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+							,'''+CONVERT(VARCHAR(10),@AccID)+'''
+							,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+							,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+							,'''+CONVERT(VARCHAR(10),@Amount)+'''
+							,'''+@BranchName+'''
+							,'''+@GETDATE+'''
+							,'''+@UserID+'''
+							,''Cr''
+							,1
+							,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) + '''
+							,'''+@CustomerName+'''
+						)
+
+					END
+				ELSE
+					BEGIN
+						INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+							(
+								Date
+								,AccountID
+								,AccOriCustID
+								,DeliveryID
+								,Amount
+								,BranchName
+								,CreatedAt
+								,CreatedBy
+								,Type
+								,Status
+								,Particular
+								,RelationAccount
+							)
+						VALUES
+							(
+								'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+								,'''+CONVERT(VARCHAR(10),@AccID)+'''
+								,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+								,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+								,'''+CONVERT(VARCHAR(10),@Amount)+'''
+								,'''+@BranchName+'''
+								,'''+@GETDATE+'''
+								,'''+@UserID+'''
+								,''Dr''
+								,1
+								,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) +'''
+								,'''+@CustomerName+'''
+							)
+					END
+		
+	 
+
+			INSERT INTO ' + @DBName + '.dbo.DailyBalance
+				(
+					ContactID
+					,DeliveryID
+					,Date
+					,Balance
+					,TotBalance
+					,BranchName
+					,Active
+					,CreatedBy
+					,CreatedDate
+				)
+				VALUES
+				(
+					'''+CONVERT(VARCHAR(10),@ContactID)+''',
+					'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+@BranchName+''',
+					''True'',
+					'''+@UserID+''',
+					'''+@GETDATE+'''
+				)
+			END	
+	END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+END
+
+=============================================================================================================================
+
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 18-2-2012
+		DESCRIPTION : Report for Delivery Slip OR Delivery Reciept
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROC [dbo].[DeliverReceipt_Report]
+(
+	@MRNo INT
+	,@Fixed VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @TotCh DECIMAL(18,2)
+DECLARE @TotCh1 DECIMAL(18,2)
+DECLARE @TotCh2 DECIMAL(18,2)
+DECLARE @OldFreight DECIMAL(18,2)
+DECLARE @OldService DECIMAL(18,2)
+DECLARE @NewService DECIMAL(18,2)
+DECLARE @OldDeliCh DECIMAL(18,2)
+DECLARE @NewDeliCh DECIMAL(18,2)
+DECLARE @OldTotal DECIMAL(18,2)
+DECLARE @NewFreight DECIMAL(18,2)
+DECLARE @NewFreight1 DECIMAL(18,2)
+DECLARE @CashName VARCHAR(50)
+DECLARE @OldID INT
+
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh=SUM((DS.ActualWeight*DS.Freight)+DS.Labour+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((DS.ActualWeight*DS.Freight)*(DS.ServiceTax)/100),0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh INTEGER OUTPUT', @TotCh OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh1=SUM((LCD.NoOfPackages*DS.Freight)+DS.Labour+(LCD.NoOfPackages*DS.DeliveryCh)+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((LCD.NoOfPackages*DS.Freight)*(DS.ServiceTax)/100),0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh1 INTEGER OUTPUT', @TotCh1 OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh2=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax)
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh2 INTEGER OUTPUT', @TotCh2 OUTPUT
+
+SET @SQLString=N'(SELECT @OldFreight=DS.Freight
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldFreight INTEGER OUTPUT', @OldFreight OUTPUT
+
+SET @SQLString=N'(SELECT @OldDelich=DS.DeliveryCh
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldDelich INTEGER OUTPUT', @OldDelich OUTPUT
+
+
+SET @SQLString=N'(SELECT @OldService=DS.ServiceTax
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldService INTEGER OUTPUT', @OldService OUTPUT
+
+SET @SQLString=N'(SELECT @OldTotal=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax)
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldTotal INTEGER OUTPUT', @OldTotal OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight=SUM((DS.ActualWeight*DS.Freight))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight INTEGER OUTPUT', @NewFreight OUTPUT
+
+SET @SQLString=N'(SELECT @NewService=SUM(convert(int,round(CAST(((DS.ActualWeight * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewService INTEGER OUTPUT', @NewService OUTPUT
+
+SET @SQLString=N'(SELECT @NewDeliCh=SUM((LCD.NoOfPackages*DS.DeliveryCh))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewDeliCh INTEGER OUTPUT', @NewDeliCh OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight1=SUM((LCD.NoOfPackages*DS.Freight))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight1 INTEGER OUTPUT', @NewFreight1 OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+				SET	@TotCh=@TotCh2
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@TotCh+@NewDeliCh
+				SET @OldFreight=@NewFreight
+				SET @OldService=@NewService
+				SET @OldDeliCh=@NewDeliCh
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@OldTotal
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+	END
+--ELSE
+--	BEGIN
+--		IF(@CashName!='CASH')
+--			BEGIN
+--				SET	@TotCh=@TotCh2
+--			END
+--		ELSE
+--			BEGIN
+--				SET	@TotCh=@TotCh
+--				SET @OldFreight=@OldFreight
+--			END
+--	END
+
+BEGIN
+	SET @SQLString=N'IF('''+@Fixed+'''!=''Fixed'')
+		BEGIN
+			IF('''+@CashName+'''!=''CASH'')
+				 SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,'''+CONVERT(VARCHAR(10),@OldFreight)+''' as Freight
+					,DS.Labour
+					,'''+CONVERT(VARCHAR(10),@OldDeliCh)+''' as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,'''+CONVERT(VARCHAR(10),@OldService)+''' as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			ELSE
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,DS.DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,DS.ServiceTax as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+		END
+		ELSE
+			IF('''+@CashName+'''!=''CASH'')
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,CAST(''FIXED'' as VARCHAR(10)) as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((LCD.NoOfPackages * DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,CAST((LCD.NoOfPackages * DS.DeliveryCh)as Decimal(18,2)) as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,convert(int,round(CAST(((LCD.NoOfPackages * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)) as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh1)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+=========================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverySlip_U]
+(
+	@LRNO				VARCHAR(25)
+	,@MRNO				VARCHAR(25)
+	,@DeliverySlipID	INT
+	,@ActWeight			DECIMAL(18,2)
+	,@Packing			VARCHAR(25)	
+	,@PrivateMarks		VARCHAR(150)	
+	,@Freight			DECIMAL(18,2)
+	,@Labour			DECIMAL(18,2)		
+	,@DeliveryCh		DECIMAL(18,2)		
+	,@StationaryCh		DECIMAL(18,2)		
+	,@Demurrage			DECIMAL(18,2)		
+	,@LocalCartage		DECIMAL(18,2)		
+	,@ServiceTax		DECIMAL(18,2)	
+	,@Fixed				VARCHAR(50)
+	,@DeliveryDate		DATETIME
+	,@CustomerName		VARCHAR(30)
+	,@OriCustName		VARCHAR(30)
+	,@BranchName		VARCHAR(50)
+	,@UserID			VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @LorryDescID INT
+DECLARE @LDescID INT
+DECLARE @ToPay DECIMAL
+DECLARE @Amount DECIMAL
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @TotDelivh DECIMAL(18,2)
+DECLARE @Amt DECIMAL
+DECLARE @ContactID INT
+DECLARE @OldAmt DECIMAL
+DECLARE @TotalBalance DECIMAL
+DECLARE @Total DECIMAL(18,2)
+DECLARE @CName VARCHAR(25)
+DECLARE @NoOfPack INT
+DECLARE @OldID INT
+
+SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+	
+IF(@Fixed='Fixed')
+	BEGIN
+		SET @TotFreight=(SELECT @NoOfPack * @Freight)
+		SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+ELSE
+	BEGIN
+		SET @TotFreight=(SELECT (@ActWeight * @Freight))
+		SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+
+SET @SQLString=N'(SELECT @CName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CName VARCHAR(20) OUTPUT', @CName OUTPUT
+
+SET @SQLString=N'(SELECT @LorryDescID=LorryChallanDescID FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LorryDescID INTEGER OUTPUT', @LorryDescID OUTPUT
+
+SET @SQLString=N'(SELECT @LDescID=ID FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='+CONVERT(VARCHAR(10),@LRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LDescID INTEGER OUTPUT', @LDescID OUTPUT
+
+--SET @TotFreight=(SELECT (@ActWeight * @Freight))
+--
+--SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax)
+
+SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+SET @SQLString=N'(SELECT @ToPay=(Amount) FROM ' + @DBName + '.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+' 
+					AND BranchName='''+@BranchName+''' AND ACTIVE=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+
+DECLARE @AccID INT
+	
+SET @SQLString=N'(SELECT @AccID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+DECLARE @AccOriCustID INT
+	
+SET @SQLString=N'(SELECT @AccOriCustID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+DECLARE @EntryITCount INT
+
+SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+DECLARE @TimeDate as datetime
+	DECLARE @Time datetime
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+--
+--SET @SQLString=N'(SELECT @OldFreight=DS.Freight
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@OldFreight INTEGER OUTPUT', @OldFreight OUTPUT
+--
+--SET @SQLString=N'(SELECT @OldDelich=DS.DeliveryCh
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@OldDelich INTEGER OUTPUT', @OldDelich OUTPUT
+--
+--
+--SET @SQLString=N'(SELECT @OldService=DS.ServiceTax
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@OldService INTEGER OUTPUT', @OldService OUTPUT
+--
+--SET @SQLString=N'(SELECT @OldTotal=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+--					+DS.ServiceTax)
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@OldTotal INTEGER OUTPUT', @OldTotal OUTPUT
+--
+--SET @SQLString=N'(SELECT @NewFreight=SUM((DS.ActualWeight*DS.Freight))
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@NewFreight INTEGER OUTPUT', @NewFreight OUTPUT
+--
+--SET @SQLString=N'(SELECT @NewService=SUM(convert(int,round(CAST(((DS.ActualWeight * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)))
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@NewService INTEGER OUTPUT', @NewService OUTPUT
+--
+--SET @SQLString=N'(SELECT @NewDeliCh=SUM((LCD.NoOfPackages*DS.DeliveryCh))
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+--				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND DS.BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@NewDeliCh INTEGER OUTPUT', @NewDeliCh OUTPUT
+--
+--SET @SQLString=N'(SELECT @NewFreight1=SUM((LCD.NoOfPackages*DS.Freight))
+--				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+--				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+--				AND DS.BranchName='''+@BranchName+''')'
+--
+--EXEC sp_executesql @SQLString,N'@NewFreight1 INTEGER OUTPUT', @NewFreight1 OUTPUT
+
+--IF(@OldID>=46833)
+--	BEGIN
+--		SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+--	END
+--ELSE
+--	BEGIN
+--		SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )		
+--	END
+DECLARE @CashName VARCHAR(50)
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+--				SET	@TotCh=@TotCh2
+--				SET @OldFreight=@OldFreight
+--				SET @OldService=@OldService
+--				SET @OldDeliCh=@OldDeliCh
+				SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+--				SET	@TotCh=@TotCh+@NewDeliCh
+--				SET @OldFreight=@NewFreight
+--				SET @OldService=@NewService
+--				SET @OldDeliCh=@NewDeliCh
+				SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+--				SET	@TotCh=@OldTotal
+--				SET @OldFreight=@OldFreight
+--				SET @OldService=@OldService
+--				SET @OldDeliCh=@OldDeliCh
+				SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )
+			END
+	END
+	
+
+BEGIN
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		UPDATE
+			' + @DBName +'.dbo.DeliverySlip
+		SET
+			MRNO='''+CONVERT(VARCHAR(20),@MRNO)+'''
+			,LorryChallanDescID='''+CONVERT(VARCHAR(10),@LDescID)+'''
+			,CustomerName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+			,ActualWeight='''+CONVERT(VARCHAR(10),@ActWeight)+'''
+			,Packing='''+@Packing+'''
+			,PrivateMarks='''+@PrivateMarks+'''
+			,Fixed='''+@Fixed+'''
+			,Freight='''+CONVERT(VARCHAR(10),@Freight)+'''
+			,Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			,DeliveryCh='''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+			,StationaryCh='''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+			,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			,DeliveryDate='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+			,Amount='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,Balance='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,PaymentStatus=''True''
+			,BranchName='''+@BranchName+'''
+			,UpdatedBy='''+@UserID+'''
+			,UpdatedDate='''+@GETDATE+'''
+		WHERE
+			ID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+		AND
+			Active=''True''
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+		BEGIN
+
+		IF('''+CONVERT(VARCHAR(10),@LDescID)+'''='''+CONVERT(VARCHAR(10),@LorryDescID)+''')
+			BEGIN
+
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+						,CustName='''+@CustomerName+'''
+						,OriCustName='''+@OriCustName+'''
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+		ELSE
+			BEGIN
+				UPDATE
+					' + @DBName + '.dbo.LorryChallanDescription
+				SET
+					ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+					,CustName='''+@CustomerName+'''
+					,OriCustName='''+@OriCustName+'''
+				WHERE
+					LRNo='''+@LRNO+'''
+				AND 
+					BranchName='''+@BranchName+'''
+				AND
+					Active=''True''
+				
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay=0
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+
+		IF('''+@CName+'''!=''Cancelled'')
+				BEGIN
+					
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+
+
+					UPDATE 
+						' + @DBName + '.dbo.DailyBalance
+					SET
+						ContactID='''+CONVERT(VARCHAR(10),@ContactID)+''',
+						Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+						Balance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						TotBalance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						UpdatedBy='''+@UserID+''',
+						UpdatedDate='''+@GETDATE+'''
+					WHERE
+						DeliveryId='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					AND 
+						BranchName='''+@BranchName+'''
+					AND
+						Active=''True''
+
+				END
+		ELSE
+		   BEGIN
+
+				UPDATE 
+					' + @DBName + '_Acc.dbo.Company_EntryItemCount
+				SET
+					ItemCount=ItemCount+1
+
+			IF('''+@CustomerName+'''=''Cash'')
+				BEGIN
+
+					INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+						(
+							Date
+							,AccountID
+							,AccOriCustID
+							,DeliveryID
+							,Amount
+							,BranchName
+							,CreatedAt
+							,CreatedBy
+							,Type
+							,Status
+							,Particular
+							,RelationAccount
+						)
+					   VALUES
+						(
+							'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+							,'''+CONVERT(VARCHAR(10),@AccID)+'''
+							,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+							,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+							,'''+CONVERT(VARCHAR(10),@Amount)+'''
+							,'''+@BranchName+'''
+							,'''+@GETDATE+'''
+							,'''+@UserID+'''
+							,''Cr''
+							,1
+							,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) + '''
+							,'''+@CustomerName+'''
+						)
+
+					END
+				ELSE
+					BEGIN
+						INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+							(
+								Date
+								,AccountID
+								,AccOriCustID
+								,DeliveryID
+								,Amount
+								,BranchName
+								,CreatedAt
+								,CreatedBy
+								,Type
+								,Status
+								,Particular
+								,RelationAccount
+							)
+						VALUES
+							(
+								'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+								,'''+CONVERT(VARCHAR(10),@AccID)+'''
+								,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+								,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+								,'''+CONVERT(VARCHAR(10),@Amount)+'''
+								,'''+@BranchName+'''
+								,'''+@GETDATE+'''
+								,'''+@UserID+'''
+								,''Dr''
+								,1
+								,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) +'''
+								,'''+@CustomerName+'''
+							)
+					END
+		
+	 
+
+			INSERT INTO ' + @DBName + '.dbo.DailyBalance
+				(
+					ContactID
+					,DeliveryID
+					,Date
+					,Balance
+					,TotBalance
+					,BranchName
+					,Active
+					,CreatedBy
+					,CreatedDate
+				)
+				VALUES
+				(
+					'''+CONVERT(VARCHAR(10),@ContactID)+''',
+					'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+@BranchName+''',
+					''True'',
+					'''+@UserID+''',
+					'''+@GETDATE+'''
+				)
+			END	
+	END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+END
+
+==============================================================================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+   /*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 20-01-2012
+		DESCRIPTION : To Insert the record to the Delivery Slip table AND Update the record to the InvoiceBalance, TotalBalance And Payments Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROC [dbo].[DeliverySlip_I]
+(
+	@LRNO			VARCHAR(25)
+	,@MRNO			VARCHAR(25)
+	,@Packing		VARCHAR(25)
+	,@hID			INT
+	,@DeliveryDate	DATETIME
+	,@ActWeight		DECIMAL(18,2)
+	,@CustomerName	VARCHAR(30)
+	,@OriCustName	VARCHAR(30)
+	,@PrivateMarks	VARCHAR(150)
+	,@Freight		DECIMAL(18,2)
+	,@Labour		DECIMAL(18,2)
+	,@DeliveryCh	DECIMAL(18,2)
+	,@StationaryCh	DECIMAL(18,2)
+	,@Demurrage		DECIMAL(18,2)
+	,@LocalCartage	DECIMAL(18,2)
+	,@ServiceTax	DECIMAL(18,2)
+	,@Fixed			VARCHAR(50)
+	,@BranchName	VARCHAR(50)
+	,@UserID		VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @InvBalID INT
+DECLARE @DeliverySlipID INT
+DECLARE @ToPay DECIMAL(18,2)
+DECLARE @Amount DECIMAL(18,2)
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @Balance DECIMAL(18,2)
+DECLARE @ContactID INt
+DECLARE @TimeDate as datetime
+DECLARE @Time datetime
+DECLARE @NoOfPack INT
+
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+BEGIN
+	SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+
+	
+IF(@Fixed='Fixed')
+BEGIN
+SET @TotFreight=(SELECT @NoOfPack * @Freight)
+SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+END
+ELSE
+BEGIN
+SET @TotFreight=(SELECT (@ActWeight * @Freight))
+SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+END
+
+
+IF(@CustomerName='Cash')
+	BEGIN
+		SET @Amount=(SELECT (@Freight+@Labour+@DeliveryCh+@StationaryCh	+@Demurrage	+@LocalCartage	+@TotService) as Total)
+	END
+ELSE
+	BEGIN
+		SET @Amount=(SELECT (@TotFreight+@Labour+@DeliveryCh+@StationaryCh	+@Demurrage	+@LocalCartage	+@TotService) as Total)
+	END
+
+
+	SET @SQLString = N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNO='+CONVERT(VARCHAR(10),@MRNO)+'
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		INSERT INTO '+@DBName+'.dbo.DeliverySlip
+			(
+				MRNO
+				,LorryChallanDescID
+				,CustomerName
+				,OriCustName
+				,DeliveryDate
+				,ActualWeight
+				,Packing
+				,PrivateMarks
+				,Fixed
+				,Freight
+				,Labour
+				,DeliveryCh
+				,StationaryCh
+				,Demurrage
+				,LocalCartage
+				,ServiceTax
+				,Amount
+				,Balance
+				,BranchName
+				,Active
+				,PaymentStatus
+				,CreatedBy
+				,CreatedDate
+			)
+		VALUES
+			(
+				'''+CONVERT(VARCHAR(10),@MRNO)+'''
+				,'''+CONVERT(VARCHAR(10),@hID)+'''
+				,'''+@CustomerName+'''
+				,'''+@OriCustName+'''
+				,'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+				,'''+CONVERT(VARCHAR(10),@ActWeight)+'''
+				,'''+@Packing+'''
+				,'''+@PrivateMarks+'''
+				,'''+@Fixed+'''
+				,'''+CONVERT(VARCHAR(10),@Freight)+'''
+				,'''+CONVERT(VARCHAR(10),@Labour)+'''
+				,'''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+				,'''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+				,'''+CONVERT(VARCHAR(10),@Demurrage)+'''
+				,'''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+				,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+				,'''+CONVERT(VARCHAR(10),@Amount)+'''
+				,'''+CONVERT(VARCHAR(10),@Amount)+'''
+				,'''+@BranchName+'''
+				,''True''
+				,''True''
+				,'''+@UserID+'''
+				,'''+@GETDATE+'''
+			)
+		SELECT @DeliverySlipID = SCOPE_IDENTITY()
+	END'
+
+		EXEC sp_executesql @SQLString,N'@DeliverySlipID INTEGER OUTPUT', @DeliverySlipID OUTPUT
+ 
+	SET @SQLString=N'(SELECT @ToPay=(Amount) FROM '+@DBName+'.dbo.DeliverySlip WHERE LorryChallanDescID='+CONVERT(VARCHAR(10),@hID)+'
+					 AND BranchName='''+@BranchName+''' AND ACTIVE=''TRUE'')'
+	
+	EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+	
+	SET @SQLString=N'UPDATE 
+		 '+@DBName+'_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ISNULL(ItemCount,0)+1'
+
+	EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+	
+	DECLARE @EntryITCount INT
+	DECLARE @AccID INT
+	DECLARE @AccOriCustID INT
+	DECLARE @AccOthersID INT
+	DECLARE @AccParcelID INT
+	DECLARE @RelAcc VARCHAR(20)
+
+	SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+	EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+	SET @SQLString=N'(SELECT @AccID=ID FROM '+@DBName+'_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+						AND BranchName='''+@BranchName+''' AND Status=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+	SET @SQLString=N'(SELECT @AccOriCustID=ID FROM '+@DBName+'_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+						AND BranchName='''+@BranchName+''' AND Status=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+	SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'_Acc.dbo.DebitsCredits 
+					WHERE Particular=''MRNo'' + '' '' +  ''' + CONVERT(VARCHAR(10),@MRNo)+'''
+					AND BranchName='''+@BranchName+''' AND Status=''True'')
+	BEGIN
+		IF('''+@CustomerName+'''=''Cash'')
+		BEGIN
+			INSERT INTO '+@DBName+'_Acc.dbo.DebitsCredits
+				(
+					Date
+					,AccountID
+					,AccOriCustID
+					,DeliveryID
+					,Amount
+					,BranchName
+					,CreatedAt
+					,CreatedBy
+					,Type
+					,Status
+					,Particular
+					,RelationAccount
+				)
+			   VALUES
+				(
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+					,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+					,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					,'''+CONVERT(VARCHAR(10),@Amount)+'''
+					,'''+@BranchName+'''
+					,'''+@GETDATE+'''
+					,'''+@UserID+'''
+					,''Cr''
+					,1
+					,''MRNo'' + '' '' + '''+CONVERT(VARCHAR(10),@MRNo)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+				)
+		END
+		ELSE
+		BEGIN
+			INSERT INTO '+@DBName+'_Acc.dbo.DebitsCredits
+				(
+					Date
+					,AccountID
+					,AccOriCustID
+					,DeliveryID
+					,Amount
+					,BranchName
+					,CreatedAt
+					,CreatedBy
+					,Type
+					,Status
+					,Particular
+					,RelationAccount
+				)
+			VALUES
+				(
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+					,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+					,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					,'''+CONVERT(VARCHAR(10),@Amount)+'''
+					,'''+@BranchName+'''
+					,'''+@GETDATE+'''
+					,'''+@UserID+'''
+					,''Dr''
+					,1
+					,''MRNo'' + '' '' + '''+CONVERT(VARCHAR(10),@MRNo)+'''
+					,'''+@CustomerName+'''
+				)
+		END
+
+		INSERT INTO DailyBalance
+		(
+			ContactID
+			,DeliveryID
+			,Date
+			,Balance
+			,TotBalance
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@ContactID)+''',
+			'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+			'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+			'''+CONVERT(VARCHAR(10),@Amount)+''',
+			'''+CONVERT(VARCHAR(10),@Amount)+''',
+			'''+@BranchName+''',
+			''True'',
+			'''+@UserID+''',
+			'''+@GETDATE+'''
+		)		
+--	UPDATE 
+--			AutoGeneration
+--		SET
+--			DeliverySlip_MRNo=@MRNO;
+
+	UPDATE
+			'+@DBName+'.dbo.LorryChallanDescription
+		SET
+			ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,CustName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+	WHERE
+		LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		BranchName='''+@BranchName+'''
+	AND
+		Active=''True''
+	END'
+END
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+=======================================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+ALTER PROC [dbo].[LedgerAcc_Name_Load]
+--@FromDate DATETIME,
+--@ToDate DATETIME,
+@BranchName VARCHAR(50)
+
+as
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+
+SET @SQLString = N'
+	SELECT DISTINCT ACC.ID,NAME 
+		FROM ' + @DBName + '_Acc.dbo.Accounts ACC 
+	JOIN 
+		' + @DBName + '_Acc.dbo.DebitsCredits DC ON ACC.ID=DC.AccountID 
+	WHERE
+		DC.BranchName='''+@BranchName+'''
+	AND 
+		ACC.BranchName='''+@BranchName+'''
+	AND 
+		DC.Status=''True''
+	AND 
+		ACC.Status=''True'' ORDER BY NAME'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+==================================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverySlip_U]
+(
+	@LRNO				VARCHAR(25)
+	,@MRNO				VARCHAR(25)
+	,@DeliverySlipID	INT
+	,@ActWeight			DECIMAL(18,2)
+	,@Packing			VARCHAR(25)	
+	,@PrivateMarks		VARCHAR(150)	
+	,@Freight			DECIMAL(18,2)
+	,@Labour			DECIMAL(18,2)		
+	,@DeliveryCh		DECIMAL(18,2)		
+	,@StationaryCh		DECIMAL(18,2)		
+	,@Demurrage			DECIMAL(18,2)		
+	,@LocalCartage		DECIMAL(18,2)		
+	,@ServiceTax		DECIMAL(18,2)	
+	,@Fixed				VARCHAR(50)
+	,@DeliveryDate		DATETIME
+	,@CustomerName		VARCHAR(30)
+	,@OriCustName		VARCHAR(30)
+	,@BranchName		VARCHAR(50)
+	,@UserID			VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @LorryDescID INT
+DECLARE @LDescID INT
+DECLARE @ToPay DECIMAL
+DECLARE @Amount DECIMAL
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @TotDelivh DECIMAL(18,2)
+DECLARE @Amt DECIMAL
+DECLARE @ContactID INT
+DECLARE @OldAmt DECIMAL
+DECLARE @TotalBalance DECIMAL
+DECLARE @Total DECIMAL(18,2)
+DECLARE @CName VARCHAR(25)
+DECLARE @NoOfPack INT
+DECLARE @OldID INT
+
+SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+	
+IF(@Fixed='Fixed')
+	BEGIN
+		SET @TotFreight=(SELECT @NoOfPack * @Freight)
+		SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+ELSE
+	BEGIN
+		SET @TotFreight=(SELECT (@ActWeight * @Freight))
+		SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+
+SET @SQLString=N'(SELECT @CName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CName VARCHAR(20) OUTPUT', @CName OUTPUT
+
+SET @SQLString=N'(SELECT @LorryDescID=LorryChallanDescID FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LorryDescID INTEGER OUTPUT', @LorryDescID OUTPUT
+
+SET @SQLString=N'(SELECT @LDescID=ID FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='+CONVERT(VARCHAR(10),@LRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LDescID INTEGER OUTPUT', @LDescID OUTPUT
+
+--SET @TotFreight=(SELECT (@ActWeight * @Freight))
+--
+--SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax)
+
+SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+SET @SQLString=N'(SELECT @ToPay=(Amount) FROM ' + @DBName + '.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+' 
+					AND BranchName='''+@BranchName+''' AND ACTIVE=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+
+DECLARE @AccID INT
+	
+SET @SQLString=N'(SELECT @AccID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+DECLARE @AccOriCustID INT
+	
+SET @SQLString=N'(SELECT @AccOriCustID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+DECLARE @EntryITCount INT
+
+SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+DECLARE @TimeDate as datetime
+	DECLARE @Time datetime
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+--IF(@OldID>=46833)
+--	BEGIN
+--		SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+--	END
+--ELSE
+--	BEGIN
+--		SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )		
+--	END
+DECLARE @CashName VARCHAR(50)
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+--				SET	@TotCh=@TotCh2
+--				SET @OldFreight=@OldFreight
+--				SET @OldService=@OldService
+--				SET @OldDeliCh=@OldDeliCh
+				SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+--				SET	@TotCh=@TotCh+@NewDeliCh
+--				SET @OldFreight=@NewFreight
+--				SET @OldService=@NewService
+--				SET @OldDeliCh=@NewDeliCh
+				SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+--				SET	@TotCh=@OldTotal
+--				SET @OldFreight=@OldFreight
+--				SET @OldService=@OldService
+--				SET @OldDeliCh=@OldDeliCh
+				SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )
+			END
+	END
+	
+
+BEGIN
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		UPDATE
+			' + @DBName +'.dbo.DeliverySlip
+		SET
+			MRNO='''+CONVERT(VARCHAR(20),@MRNO)+'''
+			,LorryChallanDescID='''+CONVERT(VARCHAR(10),@LDescID)+'''
+			,CustomerName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+			,ActualWeight='''+CONVERT(VARCHAR(10),@ActWeight)+'''
+			,Packing='''+@Packing+'''
+			,PrivateMarks='''+@PrivateMarks+'''
+			,Fixed='''+@Fixed+'''
+			,Freight='''+CONVERT(VARCHAR(10),@Freight)+'''
+			,Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			,DeliveryCh='''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+			,StationaryCh='''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+			,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			,DeliveryDate='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+			,Amount='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,Balance='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,PaymentStatus=''True''
+			,BranchName='''+@BranchName+'''
+			,UpdatedBy='''+@UserID+'''
+			,UpdatedDate='''+@GETDATE+'''
+		WHERE
+			ID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+		AND
+			Active=''True''
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+		BEGIN
+
+		IF('''+CONVERT(VARCHAR(10),@LDescID)+'''='''+CONVERT(VARCHAR(10),@LorryDescID)+''')
+			BEGIN
+
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+						,CustName='''+@CustomerName+'''
+						,OriCustName='''+@OriCustName+'''
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+		ELSE
+			BEGIN
+				UPDATE
+					' + @DBName + '.dbo.LorryChallanDescription
+				SET
+					ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+					,CustName='''+@CustomerName+'''
+					,OriCustName='''+@OriCustName+'''
+				WHERE
+					LRNo='''+@LRNO+'''
+				AND 
+					BranchName='''+@BranchName+'''
+				AND
+					Active=''True''
+				
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay=0
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+
+		IF('''+@CName+'''!=''Cancelled'')
+				BEGIN
+					IF('''+@CName+'''!=''CASH'')
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					ELSE
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Type=''Cr''
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+
+					UPDATE 
+						' + @DBName + '.dbo.DailyBalance
+					SET
+						ContactID='''+CONVERT(VARCHAR(10),@ContactID)+''',
+						Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+						Balance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						TotBalance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						UpdatedBy='''+@UserID+''',
+						UpdatedDate='''+@GETDATE+'''
+					WHERE
+						DeliveryId='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					AND 
+						BranchName='''+@BranchName+'''
+					AND
+						Active=''True''
+
+				END
+		ELSE
+		   BEGIN
+
+				UPDATE 
+					' + @DBName + '_Acc.dbo.Company_EntryItemCount
+				SET
+					ItemCount=ItemCount+1
+
+			IF('''+@CustomerName+'''=''Cash'')
+				BEGIN
+
+					INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+						(
+							Date
+							,AccountID
+							,AccOriCustID
+							,DeliveryID
+							,Amount
+							,BranchName
+							,CreatedAt
+							,CreatedBy
+							,Type
+							,Status
+							,Particular
+							,RelationAccount
+						)
+					   VALUES
+						(
+							'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+							,'''+CONVERT(VARCHAR(10),@AccID)+'''
+							,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+							,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+							,'''+CONVERT(VARCHAR(10),@Amount)+'''
+							,'''+@BranchName+'''
+							,'''+@GETDATE+'''
+							,'''+@UserID+'''
+							,''Cr''
+							,1
+							,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) + '''
+							,'''+@CustomerName+'''
+						)
+
+					END
+				ELSE
+					BEGIN
+						INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+							(
+								Date
+								,AccountID
+								,AccOriCustID
+								,DeliveryID
+								,Amount
+								,BranchName
+								,CreatedAt
+								,CreatedBy
+								,Type
+								,Status
+								,Particular
+								,RelationAccount
+							)
+						VALUES
+							(
+								'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+								,'''+CONVERT(VARCHAR(10),@AccID)+'''
+								,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+								,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+								,'''+CONVERT(VARCHAR(10),@Amount)+'''
+								,'''+@BranchName+'''
+								,'''+@GETDATE+'''
+								,'''+@UserID+'''
+								,''Dr''
+								,1
+								,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) +'''
+								,'''+@CustomerName+'''
+							)
+					END
+		
+	 
+
+			INSERT INTO ' + @DBName + '.dbo.DailyBalance
+				(
+					ContactID
+					,DeliveryID
+					,Date
+					,Balance
+					,TotBalance
+					,BranchName
+					,Active
+					,CreatedBy
+					,CreatedDate
+				)
+				VALUES
+				(
+					'''+CONVERT(VARCHAR(10),@ContactID)+''',
+					'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+@BranchName+''',
+					''True'',
+					'''+@UserID+''',
+					'''+@GETDATE+'''
+				)
+			END	
+	END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+END
+
+============================================================================================================================
+
+ALTER PROC [dbo].[DeliverySlip_U]
+(
+	@LRNO				VARCHAR(25)
+	,@MRNO				VARCHAR(25)
+	,@DeliverySlipID	INT
+	,@ActWeight			DECIMAL(18,2)
+	,@Packing			VARCHAR(25)	
+	,@PrivateMarks		VARCHAR(150)	
+	,@Freight			DECIMAL(18,2)
+	,@Labour			DECIMAL(18,2)		
+	,@DeliveryCh		DECIMAL(18,2)		
+	,@StationaryCh		DECIMAL(18,2)		
+	,@Demurrage			DECIMAL(18,2)		
+	,@LocalCartage		DECIMAL(18,2)		
+	,@ServiceTax		DECIMAL(18,2)	
+	,@Fixed				VARCHAR(50)
+	,@DeliveryDate		DATETIME
+	,@CustomerName		VARCHAR(30)
+	,@OriCustName		VARCHAR(30)
+	,@BranchName		VARCHAR(50)
+	,@UserID			VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @LorryDescID INT
+DECLARE @LDescID INT
+DECLARE @ToPay DECIMAL
+DECLARE @Amount DECIMAL
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @TotDelivh DECIMAL(18,2)
+DECLARE @Amt DECIMAL
+DECLARE @ContactID INT
+DECLARE @OldAmt DECIMAL
+DECLARE @TotalBalance DECIMAL
+DECLARE @Total DECIMAL(18,2)
+DECLARE @CName VARCHAR(25)
+DECLARE @NoOfPack INT
+DECLARE @OldID INT
+
+SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+	
+SET @SQLString=N'(SELECT @CName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CName VARCHAR(20) OUTPUT', @CName OUTPUT
+
+SET @SQLString=N'(SELECT @LorryDescID=LorryChallanDescID FROM '+@DBName+'.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LorryDescID INTEGER OUTPUT', @LorryDescID OUTPUT
+
+SET @SQLString=N'(SELECT @LDescID=ID FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='+CONVERT(VARCHAR(10),@LRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@LDescID INTEGER OUTPUT', @LDescID OUTPUT
+
+--SET @TotFreight=(SELECT (@ActWeight * @Freight))
+--
+--SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax)
+
+SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+SET @SQLString=N'(SELECT @ToPay=(Amount) FROM ' + @DBName + '.dbo.DeliverySlip WHERE ID='+CONVERT(VARCHAR(10),@DeliverySlipID)+' 
+					AND BranchName='''+@BranchName+''' AND ACTIVE=''True'')'
+
+EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+
+DECLARE @AccID INT
+	
+SET @SQLString=N'(SELECT @AccID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+DECLARE @AccOriCustID INT
+	
+SET @SQLString=N'(SELECT @AccOriCustID=ID FROM ' + @DBName + '_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+					 AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+DECLARE @EntryITCount INT
+
+SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+DECLARE @TimeDate as datetime
+	DECLARE @Time datetime
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+--IF(@OldID>=46833)
+--	BEGIN
+--		SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+--	END
+--ELSE
+--	BEGIN
+--		SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )		
+--	END
+DECLARE @CashName VARCHAR(50)
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+
+IF(@Fixed='Fixed')
+	BEGIN
+		SET @TotFreight=(SELECT @NoOfPack * @Freight)
+		SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+ELSE
+	BEGIN
+		SET @TotFreight=(SELECT (@ActWeight * @Freight))
+		SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+		SET @TotDelivh=(SELECT @NoOfPack * @DeliveryCh)
+	END
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+--				SET	@TotCh=@TotCh2
+--				SET @OldFreight=@OldFreight
+--				SET @OldService=@OldService
+--				SET @OldDeliCh=@OldDeliCh
+				SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+--				SET	@TotCh=@TotCh+@NewDeliCh
+--				SET @OldFreight=@NewFreight
+--				SET @OldService=@NewService
+--				SET @OldDeliCh=@NewDeliCh
+				SET @Amount=(SELECT (@TotFreight + @Labour + @TotDelivh + @StationaryCh +@Demurrage + @LocalCartage + @TotService) )
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+--				SET	@TotCh=@OldTotal
+--				SET @OldFreight=@OldFreight
+--				SET @OldService=@OldService
+--				SET @OldDeliCh=@OldDeliCh
+				SET @Amount=(SELECT (@Freight + @Labour + @DeliveryCh + @StationaryCh +@Demurrage + @LocalCartage + @ServiceTax) )
+			END
+	END
+	
+
+BEGIN
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		UPDATE
+			' + @DBName +'.dbo.DeliverySlip
+		SET
+			MRNO='''+CONVERT(VARCHAR(20),@MRNO)+'''
+			,LorryChallanDescID='''+CONVERT(VARCHAR(10),@LDescID)+'''
+			,CustomerName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+			,ActualWeight='''+CONVERT(VARCHAR(10),@ActWeight)+'''
+			,Packing='''+@Packing+'''
+			,PrivateMarks='''+@PrivateMarks+'''
+			,Fixed='''+@Fixed+'''
+			,Freight='''+CONVERT(VARCHAR(10),@Freight)+'''
+			,Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			,DeliveryCh='''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+			,StationaryCh='''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+			,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			,DeliveryDate='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+			,Amount='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,Balance='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,PaymentStatus=''True''
+			,BranchName='''+@BranchName+'''
+			,UpdatedBy='''+@UserID+'''
+			,UpdatedDate='''+@GETDATE+'''
+		WHERE
+			ID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+		AND
+			Active=''True''
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.Payments WHERE MRNO='''+@MRNO+''' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')
+		BEGIN
+
+		IF('''+CONVERT(VARCHAR(10),@LDescID)+'''='''+CONVERT(VARCHAR(10),@LorryDescID)+''')
+			BEGIN
+
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+						,CustName='''+@CustomerName+'''
+						,OriCustName='''+@OriCustName+'''
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+		ELSE
+			BEGIN
+				UPDATE
+					' + @DBName + '.dbo.LorryChallanDescription
+				SET
+					ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+					,CustName='''+@CustomerName+'''
+					,OriCustName='''+@OriCustName+'''
+				WHERE
+					LRNo='''+@LRNO+'''
+				AND 
+					BranchName='''+@BranchName+'''
+				AND
+					Active=''True''
+				
+				UPDATE
+						' + @DBName + '.dbo.LorryChallanDescription
+				SET
+						ToPay=0
+				WHERE
+						ID='''+CONVERT(VARCHAR(10),@LorryDescID)+'''
+				AND 
+						BranchName='''+@BranchName+'''
+				AND
+						Active=''True''
+			END
+
+		IF('''+@CName+'''!=''Cancelled'')
+				BEGIN
+					IF('''+@CName+'''!=''CASH'')
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					ELSE
+					UPDATE 
+							' + @DBName + '_Acc.dbo.DebitsCredits
+					SET
+							Amount='''+CONVERT(VARCHAR(10),@Amount)+''',
+							AccountID='''+CONVERT(VARCHAR(10),@AccID)+''',
+							AccOriCustID='''+CONVERT(VARCHAR(10),@AccOriCustID)+''',
+							Type=''Cr'',
+							Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+							ModifyAt='''+@GETDATE+''',
+							ModifyBY='''+@UserID+''',
+							RelationAccount='''+@CustomerName+'''
+					
+					WHERE
+							DeliveryID='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+
+					UPDATE 
+						' + @DBName + '.dbo.DailyBalance
+					SET
+						ContactID='''+CONVERT(VARCHAR(10),@ContactID)+''',
+						Date='''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+						Balance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						TotBalance='''+CONVERT(VARCHAR(10),@Amount)+''',
+						UpdatedBy='''+@UserID+''',
+						UpdatedDate='''+@GETDATE+'''
+					WHERE
+						DeliveryId='''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					AND 
+						BranchName='''+@BranchName+'''
+					AND
+						Active=''True''
+
+				END
+		ELSE
+		   BEGIN
+
+				UPDATE 
+					' + @DBName + '_Acc.dbo.Company_EntryItemCount
+				SET
+					ItemCount=ItemCount+1
+
+			IF('''+@CustomerName+'''=''Cash'')
+				BEGIN
+
+					INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+						(
+							Date
+							,AccountID
+							,AccOriCustID
+							,DeliveryID
+							,Amount
+							,BranchName
+							,CreatedAt
+							,CreatedBy
+							,Type
+							,Status
+							,Particular
+							,RelationAccount
+						)
+					   VALUES
+						(
+							'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+							,'''+CONVERT(VARCHAR(10),@AccID)+'''
+							,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+							,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+							,'''+CONVERT(VARCHAR(10),@Amount)+'''
+							,'''+@BranchName+'''
+							,'''+@GETDATE+'''
+							,'''+@UserID+'''
+							,''Cr''
+							,1
+							,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) + '''
+							,'''+@CustomerName+'''
+						)
+
+					END
+				ELSE
+					BEGIN
+						INSERT INTO ' + @DBName + '_Acc.dbo.DebitsCredits
+							(
+								Date
+								,AccountID
+								,AccOriCustID
+								,DeliveryID
+								,Amount
+								,BranchName
+								,CreatedAt
+								,CreatedBy
+								,Type
+								,Status
+								,Particular
+								,RelationAccount
+							)
+						VALUES
+							(
+								'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+								,'''+CONVERT(VARCHAR(10),@AccID)+'''
+								,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+								,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+								,'''+CONVERT(VARCHAR(10),@Amount)+'''
+								,'''+@BranchName+'''
+								,'''+@GETDATE+'''
+								,'''+@UserID+'''
+								,''Dr''
+								,1
+								,''MRNo'' + '' '' + ''' + CONVERT(VARCHAR(20),@MRNo) +'''
+								,'''+@CustomerName+'''
+							)
+					END
+		
+	 
+
+			INSERT INTO ' + @DBName + '.dbo.DailyBalance
+				(
+					ContactID
+					,DeliveryID
+					,Date
+					,Balance
+					,TotBalance
+					,BranchName
+					,Active
+					,CreatedBy
+					,CreatedDate
+				)
+				VALUES
+				(
+					'''+CONVERT(VARCHAR(10),@ContactID)+''',
+					'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+CONVERT(VARCHAR(10),@Amount)+''',
+					'''+@BranchName+''',
+					''True'',
+					'''+@UserID+''',
+					'''+@GETDATE+'''
+				)
+			END	
+	END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString	
+
+END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

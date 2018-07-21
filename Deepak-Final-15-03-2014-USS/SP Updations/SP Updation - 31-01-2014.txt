@@ -1,0 +1,222 @@
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 20-01-2012
+		DESCRIPTION : To Load the LRNO from the Received Booking Details Table in the DeliverySlip Form
+		UPDATED BY : Murugan
+		UPDATED DATE :09-02-12
+    ============================================================*/
+
+
+ALTER PROC [dbo].[DeliverySlip_Details_V]
+(
+--	@FromDate	DATETIME
+--	,@ToDate	DATETIME
+--	,@CustomerName	VARCHAR(20)
+	@LRN		INT,
+	@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @Name varchar(25)
+
+SET @SQLString=N'(SELECT @Name=CustomerName FROM '+@DBName+'.dbo.DeliverySlip ds WHERE MRNO='+CONVERT(VARCHAR(10),@LRN)+'
+				 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@Name VARCHAR(20) OUTPUT', @Name OUTPUT
+
+SET @SQLString=N'IF('''+@Name+'''=''Cancelled'')
+BEGIN
+
+SELECT DISTINCT 
+		
+		DS.ID as DSID
+		
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+		,DS.CustomerName 
+		,DS.OriCustName
+		,DS.DeliveryDate
+		,DS.MRNO
+		,DS.Packing
+		,DS.PrivateMarks
+		,DS.ActualWeight
+		,DS.Freight
+		,DS.Labour
+		,DS.DeliveryCh
+		,DS.StationaryCh
+		,DS.Demurrage
+		,DS.LocalCartage
+		,DS.ServiceTax		
+		,(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax) as Total
+	FROM
+		' + @DBName + '.dbo.DeliverySlip DS
+	WHERE
+		DS.MRNO='''+CONVERT(VARCHAR(10),@LRN)+'''
+	AND
+		DS.BranchName='''+@BranchName+'''
+	AND
+		DS.Active=''True''
+END
+ELSE
+BEGIN
+	SELECT DISTINCT 
+		
+		DS.ID as DSID
+		,LCD.LRNo		
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+		,DS.CustomerName 
+		,DS.OriCustName
+		,DS.DeliveryDate
+		,DS.MRNO
+		,DS.Packing
+		,DS.PrivateMarks
+		,DS.ActualWeight
+		,DS.Freight
+		,DS.Labour
+		,DS.DeliveryCh
+		,DS.StationaryCh
+		,DS.Demurrage
+		,DS.LocalCartage
+		,DS.ServiceTax		
+		,Convert(Varchar(20),LCD.LRDate,103) as ChallanDate
+--		,AB.CustomerName
+		,LCD.LRNo
+		,LCD.NoOfPackages
+		,LCD.Contents
+		,LCD.Weight as TotalWeight
+		,(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax) as Total
+--		,IB.InvoiceAmount as InvoiceAmount
+--		,IB.BalanceAmount as TotalBalance
+--		,@PAmt as PaidAmount
+	FROM
+		' + @DBName + '.dbo.DeliverySlip DS
+	JOIN
+		' + @DBName + '.dbo.LorryChallanDescription LCD
+	ON
+		LCD.ID=DS.LorryChallanDescID 
+	WHERE
+		DS.MRNO='''+CONVERT(VARCHAR(10),@LRN)+'''
+	AND
+		DS.BranchName='''+@BranchName+'''
+	AND
+		DS.Active=''True''
+	AND
+		LCD.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+=================================================================================================================
+
+
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+ALTER PROC [dbo].[DailyPayment_Report]
+(
+@TDate DATETIME
+,@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @TotalAmt DECIMAL(18,2)
+
+SET @SQLString=N'(SELECT @TotalAmt=SUM(P.Amount) FROM '+@DBName+'.dbo.Payments P
+				  JOIN '+@DBName+'.dbo.AddressBook AB ON P.ContactID=AB.ID WHERE
+				  CONVERT(VARCHAR(15),P.PaidDate,103)='''+CONVERT(VARCHAR(15),@TDate,103)+'''
+				  AND P.Active=''True'' AND	AB.Active=''True'' AND P.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotalAmt INTEGER OUTPUT', @TotalAmt OUTPUT
+
+SET @SQLString=N'BEGIN SELECT
+		AB.Name as Name
+		,SUM(Amount) as Amount
+		,'''+CONVERT(VARCHAR(10),@TotalAmt)+''' as TotalAmt
+	FROM
+		'+@DBName+'.dbo.Payments P
+	JOIN
+		'+@DBName+'.dbo.AddressBook AB
+	ON
+		P.ContactID=AB.ID
+	WHERE
+		CONVERT(VARCHAR(15),P.PaidDate,103)='''+CONVERT(VARCHAR(15),@TDate,103)+'''
+	AND
+		P.Active=''True''
+	AND
+		AB.Active=''True''
+	AND
+		P.BranchName='''+@BranchName+'''
+		
+		GROUP BY Name
+	END '
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

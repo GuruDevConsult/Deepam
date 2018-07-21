@@ -1,0 +1,7673 @@
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+ALTER PROC [dbo].[Branch_I]
+@UserName VARCHAR(50)
+,@Password VARCHAR(50)
+,@SecurityQues VARCHAR(50)
+,@SecurityAns VARCHAR(50)
+,@NewBranchName VARCHAR(50)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(50)
+
+AS
+
+BEGIN
+	IF NOT EXISTS(SELECT * FROM Branches WHERE Branch=@BranchName AND Active='True')
+	BEGIN
+		INSERT INTO Branches
+		(
+			Branch
+			,UserName
+			,SecQues
+			,SecAns
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			@NewBranchName
+			,@UserName
+			,@SecurityQues
+			,@SecurityAns
+			,'True'
+			,@UserID
+			,GETDATE()
+		)
+
+--		INSERT INTO UserDetails
+--		(
+--			EmpName
+--			,UserName
+--			,PassWord
+--			,SecuQues
+--			,SecuAns
+--			,BranchName
+--			,Active
+--			,CreatedBy
+--			,CreatedDate
+--		)
+--		VALUES
+--		(
+--			@UserName
+--			,@UserName
+--			,@Password
+--			,@SecurityQues
+--			,@SecurityAns
+--			,@BranchName
+--			,'True'
+--			,@UserID
+--			,GETDATE()
+--		)
+
+	END
+
+END
+
+
+
+
+===================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+ALTER PROCEDURE [dbo].[Create_Database]
+@BranchName NVARCHAR(50)
+,@NewBranchName NVARCHAR(50)
+,@UserName Varchar(25)
+,@Password Varchar(25)
+,@SecurityQues Varchar(200)
+,@SecurityAns Varchar(200)
+,@UserID VARCHAR(20)
+
+as
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+
+DECLARE @DBase NVARCHAR(3500),@DBase1 NVARCHAR(3500),@NewTableCreate NVARCHAR(3500),@NewTableCreate1 NVARCHAR(3500),
+		@NewTableCreate2 NVARCHAR(3500),
+	   @DBName VARCHAR(50),
+       @MFGName VARCHAR(100),
+       @MdfPath VARCHAR(200),
+       @LFGName VARCHAR(100),
+       @LdfPath VARCHAR(200),
+	   @DBName1 VARCHAR(50),
+       @MFGName1 VARCHAR(100),
+       @MdfPath1 VARCHAR(200),
+       @LFGName1 VARCHAR(100),
+       @LdfPath1 VARCHAR(200)
+
+
+
+
+SELECT @DBName = (SELECT REPLACE(UPPER(LEFT(Branch ,1))+SUBSTRING(Branch ,2,LEN(Branch)),' ','_')
+					FROM Chennai.dbo.Branches WHERE Branch=@NewBranchName)
+, @MFGName= 'MGFname',@MdfPath = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName+'.mdf',
+    @LFGName = 'LFGName', @LdfPath = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName +'.ldf'
+
+
+
+SET @DBase = N'CREATE DATABASE '+ @DBName
++' ON  PRIMARY '
++'( NAME = '+@MFGName+', FILENAME = '''+@MdfPath+''') '
++'LOG ON '
++'( NAME = '+@LFGName+', FILENAME = '''+@LdfPath+''') '
+
+SELECT @DBName1 = + @DBName + '_Acc'
+
+, @MFGName1= 'MGFname',@MdfPath1 = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName1+'.mdf',
+    @LFGName1 = 'LFGName', @LdfPath1 = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName1+'.ldf'
+
+SET @DBase1 = N'CREATE DATABASE '+ @DBName1
++' ON  PRIMARY '
++'( NAME = '+@MFGName1+', FILENAME = '''+@MdfPath1+''') '
++'LOG ON '
++'( NAME = '+@LFGName1+', FILENAME = '''+@LdfPath1+''') '
+
+EXEC (@DBase)
+EXEC (@DBase1)
+
+
+
+-- Database 1 Starts --
+--Database1 Table Starts--
+--Table-1 AddressBook'--
+SELECT @NewTableCreate = 'CREATE TABLE '+ @DBName + '.dbo.' + 'AddressBook' +'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SurName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[GroupName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentCode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[Types] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PhonePrime] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PhoneSecondary] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob1] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob2] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailPrime] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailSecondary] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Website] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fax] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TINNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CSTNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Areacode] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdateDate] [datetime] NULL,
+ CONSTRAINT [PK_Contact] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-2 DeliverySlip'--
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[DeliverySlip]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[MRNO] [varchar](50) NULL,
+	[LorryChallanDescID] [int] NULL,
+	[CustomerName] [varchar](50) NULL,
+	[DeliveryDate] [datetime] NULL,
+	[ActualWeight] [decimal](18, 2) NULL,
+	[Packing] [varchar](50) NULL,
+	[PrivateMarks] [varchar](150) NULL,
+	[Freight] [decimal](18, 2) NULL,
+	[Labour] [decimal](18, 2) NULL,
+	[DeliveryCh] [decimal](18, 2) NULL,
+	[StationaryCh] [decimal](18, 2) NULL,
+	[Demurrage] [decimal](18, 2) NULL,
+	[LocalCartage] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[PaymentStatus] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DeliverySlip] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+
+EXEC (@NewTableCreate)
+
+--Table-3 DeliveryStatementReport'--
+SELECT @NewTableCreate='CREATE TABLE  ' + @DBName + '.[dbo].' + '[DeliveryStatementReport]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AID] [int] NULL,
+	[DeliveryDate] [datetime] NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DeliveryStatementReport] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-4 LorryAcSlip'--
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[LorryAcSlip]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[SlipNo] [varchar](50) NULL,
+	[Date] [datetime] NULL,
+	[LorryDate] [datetime] NULL,
+	[LorryNo] [varchar](30) NULL,
+	[StartFrom] [varchar](50) NULL,
+	[EndTo] [varchar](50) NULL,
+	[AgentID] [int] NULL,
+	[LorryToPay] [decimal](18, 2) NULL,
+	[LorryToPayBalance] [decimal](18, 2) NULL,
+	[LorryHire] [decimal](18, 2) NULL,
+	[Advance] [decimal](18, 2) NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[FreightPayable] [varchar](25) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryAcSlip] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-5 Payments'--
+
+SELECT @NewTableCreate='CREATE TABLE '+ @DBName + '.[dbo].' + '[Payments]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[PaymentType] [varchar](25) NULL,
+	[MRNO] [varchar](50) NULL,
+	[ContactId] [int] NULL,
+	[PaidDate] [datetime] NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[PaidAmount] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[PaymentMode] [varchar](50) NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Payments] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-6 Payments_ChequeDetails'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[Payments_ChequeDetails]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[PaymentsID] [int] NULL,
+	[ChequeNo] [int] NULL,
+	[ChequeDate] [datetime] NULL,
+	[BankName] [varchar](50) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Payments_ChequeDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-8 StockDetails'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[StockDetails]' + ' (
+	[ID] [int] IDENTITY(1000,1) NOT NULL,
+	[StoreNo] [varchar](50) NOT NULL,
+	[ItemName] [varchar](50) NULL,
+	[Quantity] [int] NULL,
+	[Unit] [int] NULL,
+	[LRNo] [varchar](20) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Stock_1] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-9 [StoreMaster]'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[StoreMaster]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[StoreNo] [varchar](20) NULL,
+	[StoreAddress] [varchar](50) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](35) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](35) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_StoreMaster] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-10 [BookingDetails]'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[BookingDetails]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LRNo] [varchar](20) NULL,
+	[BookingDate] [datetime] NULL,
+	[ConsignorID] [int] NULL,
+	[ConsigneeID] [int] NULL,
+	[AgentID] [int] NULL,
+	[StoreID] [int] NULL,
+	[DeliveryStatus] [bit] NULL,
+	[Freight] [decimal](18, 2) NULL,
+	[HandlingCharges] [decimal](18, 2) NULL,
+	[CartageCharges] [decimal](18, 2) NULL,
+	[StatisticalCharges] [decimal](18, 2) NULL,
+	[MiscExp] [decimal](18, 2) NULL,
+	[Insurance] [varchar](50) NULL,
+	[AOC] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[InsuranceCoName] [varchar](50) NULL,
+	[PolicyNo] [varchar](50) NULL,
+	[PolicyDate] [datetime] NULL,
+	[InsuredAmt] [decimal](18, 2) NULL,
+	[Risk] [varchar](50) NULL,
+	[StartFrom] [varchar](50) NULL,
+	[DestTo] [varchar](50) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BookingDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-11 [Company]'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[Company]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[CompanyName] [varchar](40) NOT NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[PhonePrime] [varchar](15) NOT NULL,
+	[PhoneSecondary] [varchar](15) NULL,
+	[Mob1] [varchar](15) NULL,
+	[Mob2] [varchar](15) NULL,
+	[EmailPrime] [varchar](50) NULL,
+	[EmailSecondary] [varchar](50) NULL,
+	[Website] [varchar](30) NULL,
+	[Fax] [varchar](25) NULL,
+	[TINNo] [varchar](25) NULL,
+	[CSTNo] [varchar](25) NULL,
+	[AreaCode] [varchar](25) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Trader] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-12 [Employee]'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[Employee]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmpCode] [varchar](10) NOT NULL,
+	[EmpName] [varchar](30) NOT NULL,
+	[AddressInfoID] [int] NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Employee] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-13 [EmployeeInfo]'--
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[EmployeeInfo]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmployeeID] [int] NULL,
+	[FatherName] [varchar](50) NULL,
+	[MotherName] [varchar](50) NULL,
+	[Gender] [int] NULL,
+	[DOB] [datetime] NULL,
+	[Phone] [int] NULL,
+	[Mobile] [int] NULL,
+	[Email] [varchar](100) NULL,
+	[Qualification] [varchar](15) NULL,
+	[Designation] [varchar](50) NULL,
+	[DOJ] [datetime] NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_EmployeeInfo_1] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-14 [ItemMaster]'--
+
+SELECT @NewTableCreate='CREATE TABLE '+ @DBName + '.[dbo].' + '[ItemMaster]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ItemName] [varchar](35) NULL,
+	[Rate] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-15 [CreditorsBalance]'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[CreditorsBalance]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[DayBookID] [int] NULL,
+	[Date] [datetime] NULL,
+	[CreditBalance] [decimal](18, 2) NULL,
+	[CreTotBalance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_CreditorsBalance] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+--Table-16 [CustomerMessage]'--
+
+SELECT @NewTableCreate='CREATE TABLE ' + @DBName + '.[dbo].' + '[CustomerMessage]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Date] [datetime] NULL,
+	[MobileNo] [varchar](50) NULL,
+	[Message] [varchar](max) NULL,
+	[BranchName] [varchar](50) NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_CustomerMessage] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate)
+
+
+--Table-17 [DailyBalance]'--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[DailyBalance]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[DeliveryID] [int] NULL,
+	[Date] [datetime] NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[TotBalance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-18 [DayBookReport]'--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[DayBookReport]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AID] [int] NULL,
+	[Date] [datetime] NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DayBookReport] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+
+--Table-19 [Autogeneration]'--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[Autogeneration]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[BookDetails_LRNo] [int] NULL,
+	[LorryAcSlip_SlipNo] [int] NULL,
+	[DeliverySlip_MRNo] [int] NULL,
+	[ReceivedBookDetails_LRNo] [int] NULL,
+	[LorryChallan_ChallanNo] [int] NULL,
+	[DeliveryStatement_No] [int] NULL,
+	[DayBook_No] [int] NULL,
+	[BranchName] [varchar](50) NULL,
+ CONSTRAINT [PK_Autogeneration] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+
+EXEC (@NewTableCreate1)
+
+--Table-20 [UserDetails]'--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.dbo.' + '[UserDetails]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmpName] [varchar](25) NULL,
+	[UserName] [varchar](25) NOT NULL,
+	[PassWord] [varchar](25) NOT NULL,
+	[SecuQues] [varchar](50) NOT NULL,
+	[SecuAns] [varchar](50) NOT NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_UserDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-21 [AddressInfo]'--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[AddressInfo]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[Address] [varchar](50) NULL,
+	[City] [varchar](20) NULL,
+	[Pincode] [int] NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-22 [LorryChallan]'--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[LorryChallan]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ChallanNo] [int] NULL,
+	[ArrivalDate] [datetime] NULL,
+	[DriverPhoneNo] [varchar](20) NULL,
+	[StartFrom] [varchar](25) NULL,
+	[EndTo] [varchar](25) NULL,
+	[TruckNo] [varchar](50) NULL,
+	[DriverName] [varchar](25) NULL,
+	[TruckOwnerID] [int] NULL,
+	[AgentID] [int] NULL,
+	[ChallanDate] [datetime] NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpadatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryChallan] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-23 [LorryAcSlipPackages]--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[LorryAcSlipPackages]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LorryAcSlipID] [int] NULL,
+	[LSlipNo] [varchar](50) NULL,
+	[ChallanNo] [varchar](25) NULL,
+	[Destination] [varchar](50) NULL,
+	[Packages] [int] NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[Collections] [varchar](50) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryAcSlipPackages] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+
+EXEC (@NewTableCreate1)
+
+--Table-24 [LorryChallanDescription]--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[LorryChallanDescription]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LorryChallanID] [int] NULL,
+	[AgentCode] [varchar](50) NULL,
+	[LRDate] [datetime] NULL,
+	[LRNo] [int] NULL,
+	[NoofPackages] [int] NULL,
+	[Contents] [varchar](50) NULL,
+	[StoreID] [varchar](20) NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[ToPay] [decimal](18, 2) NULL,
+	[Paid] [decimal](18, 2) NULL,
+	[PrivateMarks] [varchar](25) NULL,
+	[Mob] [varchar](15) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryChallanDescription] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-25 [BookingDetailsItem]--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[BookingDetailsItem]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[BookingDetailsID] [int] NULL,
+	[NoofPackages] [int] NULL,
+	[ItemMasterID] [int] NULL,
+	[Rate] [decimal](18, 2) NULL,
+	[ActualWeight] [decimal](18, 2) NULL,
+	[ChargedWeight] [decimal](18, 2) NULL,
+	[Total] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BookingDetailsItem] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-26 [BankDetails]--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[BankDetails]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[BankCode] [varchar](30) NULL,
+	[AccountNo] [varchar](30) NULL,
+	[AccountType] [varchar](15) NULL,
+	[AccountName] [varchar](20) NULL,
+	[IFSCode] [varchar](30) NULL,
+	[BankName] [varchar](30) NOT NULL,
+	[BranchName] [varchar](30) NULL,
+	[DeepakBranchName] [varchar](50) NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BankDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-27 [WageInfo]--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[WageInfo]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmployeeID] [int] NULL,
+	[WageID] [int] NULL,
+	[BasicPay] [money] NULL,
+	[HRA] [money] NULL,
+	[DA] [money] NULL,
+	[PF] [money] NULL,
+	[OT] [money] NULL,
+	[TA] [money] NULL,
+	[ESI] [money] NULL,
+	[Allowance] [money] NULL,
+	[SplAllowance] [money] NULL,
+	[Bonus] [money] NULL,
+	[BranchName] [varchar](50) NULL,
+ CONSTRAINT [PK_WageInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-28 [WageInfo]--
+
+SELECT @NewTableCreate1='
+CREATE TABLE ' + @DBName + '.[dbo].' + '[InvoiceBalance]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[RecBookingDetID] [int] NULL,
+	[BookingType] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[InvoiceNo] [int] NULL,
+	[InvoiceAmount] [decimal](18, 2) NULL,
+	[BalanceAmount] [decimal](18, 2) NULL,
+	[Status] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_InvoiceBalance] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-29 [ResourceMaster]--
+
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[ResourceMaster]' + '(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[ResourceName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PageTitle] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Modules] [varchar](200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Display] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedBy] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [pk_ResourceMaster_ID] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Table-30 [Branches]--
+SELECT @NewTableCreate1='CREATE TABLE ' + @DBName + '.[dbo].' + '[Branches] ' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Branch] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UserName] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SecQues] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SecAns] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Branches] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate1)
+
+--Database1 Table Starts--
+-- Foreign Keys Starts --
+
+SELECT @NewTableCreate1='ALTER TABLE ' + @DBName + '.[dbo].' + '[LorryAcSlipPackages]' + ' WITH CHECK ADD  CONSTRAINT [FK_LorryAcSlipPackages_LorryAcSlip] FOREIGN KEY([LorryAcSlipID])
+REFERENCES ' + @DBName + '.[dbo].' + '[LorryAcSlip]' + ' ([ID])'
+
+EXEC (@NewTableCreate1)
+
+SELECT @NewTableCreate1='ALTER TABLE ' + @DBName + '.[dbo].[LorryChallanDescription]  WITH CHECK ADD  CONSTRAINT [FK_LorryChallanDescription_LorryChallan] FOREIGN KEY([LorryChallanID])
+REFERENCES ' + @DBName + '.[dbo].[LorryChallan] ([ID])'
+
+EXEC (@NewTableCreate1)
+
+SELECT @NewTableCreate1='ALTER TABLE ' + @DBName + '.[dbo].[BookingDetailsItem]  WITH CHECK ADD  CONSTRAINT [FK_BookingDetailsItem_BookingDetails] FOREIGN KEY([BookingDetailsID])
+REFERENCES ' + @DBName + '.[dbo].[BookingDetails] ([ID])'
+
+EXEC (@NewTableCreate1)
+
+SELECT @NewTableCreate1='ALTER TABLE ' + @DBName + '.[dbo].[BankDetails]  WITH CHECK ADD  CONSTRAINT [FK_bankdetails_addressinfo] FOREIGN KEY([AddressInfoID])
+REFERENCES ' + '.[dbo].[AddressInfo] ([ID])'
+
+EXEC (@NewTableCreate1)
+
+SELECT @NewTableCreate1='ALTER TABLE ' + @DBName + '.[dbo].[WageInfo]  WITH CHECK ADD  CONSTRAINT [fk_wageinfo_employee] FOREIGN KEY([EmployeeID])
+REFERENCES ' + '.[dbo].[EmployeeInfo] ([ID])'
+
+EXEC (@NewTableCreate1)
+
+-- Foreign Keys Ends --
+
+--Database2 Table Starts--
+--Table-1 [FinancialYears]--
+
+SELECT @NewTableCreate2='CREATE TABLE ' + @DBName1 + '.[dbo].' + '[FinancialYears]' + '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[startingyear] [int] NULL,
+	[closingyear] [int] NULL,
+	[Status] [bit] NULL,
+	[BranchName] [varchar](50) NULL
+) ON [PRIMARY]'
+
+
+EXEC (@NewTableCreate2)
+
+--Table-2 [DebitsCredits]--
+
+SELECT @NewTableCreate2='CREATE TABLE ' + @DBName1 + '.[dbo].' + '[DebitsCredits]' + '(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[Date] [datetime] NOT NULL,
+	[Accountid] [int] NOT NULL,
+	[DeliveryID] [int] NULL,
+	[PaymentID] [int] NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) NULL,
+	[CreatedAt] [varchar](50) NULL,
+	[CreatedBy] [varchar](50) NULL,
+	[ModifyAt] [varchar](50) NULL,
+	[ModifyBy] [varchar](50) NULL,
+	[Type] [varchar](50) NULL,
+	[Status] [bit] NOT NULL,
+	[Particular] [varchar](250) NULL,
+	[IsHiddenUser] [bit] NULL,
+	[RelationAccount] [varchar](250) NULL,
+	[EntryItemCount] [bigint] NULL,
+ CONSTRAINT [PK_DebitsCredits] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate2)
+
+--Table-6 [ParentGroup]--
+SELECT @NewTableCreate2='CREATE TABLE ' + @DBName1 + '.[dbo].' + '[ParentGroup]' + '(
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](50) NOT NULL,
+	[Status] [bit] NOT NULL,
+	[Side] [nvarchar](2) NOT NULL,
+ CONSTRAINT [PK_ParentGroup] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate2)
+
+
+--Table-9 [Company_EntryItemCount]--
+SELECT @NewTableCreate2='CREATE TABLE ' + @DBName1 + '.[dbo].' + '[Company_EntryItemCount]' + '(
+	[CompanyId] [int] NULL,
+	[ItemCount] [bigint] NULL,
+	[BranchName] [varchar](50) NULL
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate2)
+
+--Table-10 [Accounts]--
+SELECT @NewTableCreate2='CREATE TABLE ' + @DBName1 + '.[dbo].' + '[Accounts]' + '(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) NULL,
+	[Name] [varchar](100) NOT NULL,
+	[Types] [varchar](50) NULL,
+	[Status] [bit] NOT NULL,
+	[Address] [varchar](200) NULL,
+	[Pincode] [int] NOT NULL,
+	[BranchName] [varchar](50) NULL,
+	[PanITNo] [varchar](30) NULL,
+	[SalesTaxNo] [varchar](30) NULL,
+	[GroupId] [int] NOT NULL,
+	[IsHiddenUser] [bit] NOT NULL,
+	[City] [varchar](50) NULL,
+	[Active] [bit] NULL,
+ CONSTRAINT [PK_Accounts] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate2)
+
+--Table-11 [Group]--
+SELECT @NewTableCreate2='CREATE TABLE ' + @DBName1 + '.[dbo].' + '[Group]' + '(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[CreatedAt] [varchar](250) NULL,
+	[CreatedBy] [varchar](250) NULL,
+	[ModifyAt] [varchar](250) NULL,
+	[ModifyBy] [varchar](250) NULL,
+	[Name] [varchar](250) NULL,
+	[Status] [varchar](250) NULL,
+	[ParentGroupId] [int] NOT NULL,
+	[BranchName] [varchar](50) NULL,
+ CONSTRAINT [PK_Group] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@NewTableCreate2)
+
+
+
+-- Database2 Table Compelted--
+
+-- Database2 Foreign Keys Stars--
+
+SELECT @NewTableCreate2='ALTER TABLE ' + @DBName1 + '.[dbo].[ParentGroup]  WITH CHECK ADD  CONSTRAINT [FK_ParentGroup_ParentGroup] FOREIGN KEY([Id])
+REFERENCES ' + @DBName1 + '.[dbo].[ParentGroup] ([Id])'
+
+EXEC (@NewTableCreate2)
+
+SELECT @NewTableCreate2='ALTER TABLE ' + @DBName1 + '.[dbo].[Accounts]  WITH CHECK ADD  CONSTRAINT [FK_Accounts_Group] FOREIGN KEY([GroupId])
+REFERENCES ' + @DBName1 + '.[dbo].[Group] ([id])'
+
+EXEC (@NewTableCreate2)
+--
+--SELECT @NewTableCreate2='ALTER TABLE ' + @DBName1 + '.[dbo].[Group]  WITH CHECK ADD  CONSTRAINT [FK_Group_ParentGroup] FOREIGN KEY([ParentGroupId])
+--REFERENCES ' + @DBName1 + '.[dbo].[ParentGroup] ([Id])'
+--
+--EXEC (@NewTableCreate2)
+
+
+
+
+-- Database2 Foreign Keys Ends --
+
+-- Database1 Stored Procedure Starts--
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName1 +' EXEC sp_executesql @SQLString'
+
+
+SET @SQLString = N'INSERT INTO ' + @DBName1 + '.dbo.[Group] (CreatedAt,CreatedBy,ModifyAt,ModifyBy,Name,Status,ParentGroupId,BranchName)
+select CreatedAt,CreatedBy,ModifyAt,ModifyBy,Name,Status,ParentGroupId,'''+@BranchName+''' FROM Chennai_Acc.dbo.[group]'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[ResourceMaster] (ResourceName,PageTitle,Modules,Display,BranchName,Active,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+select ResourceName,PageTitle,Modules,Display,BranchName,Active,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate FROM chennai.dbo.[ResourceMaster]'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[UserDetails] (UserName,Password,SecuQues,SecuAns,BranchName,Active,CreatedBy,CreatedDate)
+VALUES('''+@UserName+''','''+@Password+''','''+@SecurityQues+''','''+@SecurityAns+''','''+@BranchName+''',''True'','''+@UserID+''','''+@GETDATE+''')'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'CREATE PROC [dbo].[LorryAcSlip_LorryNo]
+(
+@LorryDate DateTime
+)
+AS
+BEGIN
+	SELECT 
+		 Distinct TruckNo 
+	FROM
+		 LorryChallan
+	WHERE 
+		 Convert(varchar(10),ChallanDate,103)=Convert(varchar(10),@LorryDate,103)
+	AND
+		 Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_ToPay]
+(
+@LorryDate Datetime,
+@TrukNo	   Varchar(15)
+)
+AS
+DECLARE @Collections Varchar(25)
+DECLARE @LorryAcSlipID int
+
+BEGIN 
+	SELECT
+		 SUM(ToPay) as LorryToPay,
+		 SUM(Weight) as Weight,
+		 SUM(NoofPackages) as Packages
+		 
+	FROM
+		 LorryChallanDescription LCD
+	JOIN
+		 LorryChallan LC
+	ON
+		 LCD.LorryChallanID=LC.ID
+--	JOIN
+--		 DeliverySlip DS
+--	ON
+--		 LCD.ID=DS.LorryChallanDescID
+	WHERE
+		Convert(Varchar(20),LC.ChallanDate,103)=Convert(Varchar(20),@LorryDate,103)
+	AND
+		LC.TruckNo=@TrukNo
+	AND
+		LC.Active=''True''
+	AND
+		LCD.Active=''True''
+
+
+	SELECT 
+		@LorryAcSlipID as LorryAcSlipID,
+		LC.ChallanNo,
+		LC.ENDTO as Destination,
+		SUM(LCD.NoofPackages) as Packages,
+		SUM(LCD.Weight) as Weight,
+		@Collections as Collections
+		
+		
+	FROM
+		 LorryChallanDescription LCD
+	JOIN
+		 LorryChallan LC
+	ON
+		 LCD.LorryChallanID=LC.ID
+	WHERE
+		Convert(Varchar(20),LC.ChallanDate,103)=Convert(Varchar(20),@LorryDate,103)
+	AND
+		LC.TruckNo=@TrukNo
+	AND
+		LCD.Active=''True''
+	AND
+		LC.Active=''True''
+	GROUP BY ChallanNo,ENDTO
+END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DayBook_DayGrid]
+
+@DayDate DATETIME,
+@BranchName VARCHAR(50)
+
+AS
+
+	DECLARE @AccID INT
+	DECLARE @ContactID INT
+	DECLARE @AccName VARCHAR(25)
+--	SET @ContactID=(SELECT ID FROM chennai.dbo.AddressBook WHERE Types=''OTHERS'')
+--	SET @AccID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE Status=''True'')
+--	SET @AccName=(SELECT [NAME] FROM Chennai_Acc.dbo.Accounts WHERE @ContactID=@AccID)
+	
+	
+BEGIN
+	SELECT
+		DC.ID
+		,CONVERT(VARCHAR(10),DC.Date,103) as Date
+		,A.Name as AccountName
+		,DC.Type as Types
+		,DC.Particular as Particulars
+		,DC.Amount
+	FROM
+		Chennai_Acc.dbo.DebitsCredits  DC
+	JOIN
+		Chennai_Acc.dbo.Accounts A
+	ON
+		DC.AccountID=A.ID
+	WHERE
+		CONVERT(VARCHAR(10),DC.Date,103)=CONVERT(VARCHAR(10),@DayDate,103)
+	AND
+		DC.DeliveryID is null
+	AND
+		DC.PaymentID is null
+	AND 
+		DC.particular!=''OldBalance''
+	AND
+	(
+		A.Types=(''CASHBOOK'')
+	OR
+		A.Types=''CUSTOMER''
+	)
+	AND
+	DC.Status=''True''
+	AND
+		DC.BranchName=@BranchName
+	AND
+		A.BranchName=@BranchName
+END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+
+SET @SQLString='CREATE PROC [dbo].[LREnquiry_ArrivalDate]
+(
+@LRNO int
+)
+AS
+--declare @a datetime
+--BEGIN
+--set @a=(SELECT ArrivalDate FROM LorryChallan LC JOIN LorryChallanDescription LD 
+--	
+--	ON LD.LorryChallanID=LC.ID WHERE LD.LRNo=@LRNo AND LD.Active=''True'')
+--if @a !=null		
+select ArrivalDate From LorryChallan LC JOIN LorryChallanDescription LD 
+	
+	ON LD.LorryChallanID=LC.ID WHERE LD.LRNo=@LRNo AND LD.Active=''True''
+--else
+-- select null
+--END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[RESOURCEDETAILS_S]
+(
+	@ResourceName NVARCHAR(50)
+)
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	SELECT ID As ScreenID, PageTitle FROM ResourceMaster WHERE UPPER(ResourceName) = UPPER(@ResourceName);
+
+	
+END'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[AddressBook_GroupLoad]
+@BranchName VARCHAR(50)
+AS
+BEGIN
+	SELECT 
+		ID,
+		[Name]
+	FROM
+		Chennai_Acc.dbo.[Group]
+	WHERE
+--		BranchName=@BranchName
+--	AND
+		Status=''True''
+	ORDER BY Name ASC
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliveryStatement_DateCheck]
+(
+@DelDate datetime
+)
+As
+BEGIN
+	SELECT
+		 DeliveryDate as Date
+	FROM 
+		 DeliverySlip
+	WHERE
+		 convert(varchar(15),DeliveryDate,103)=convert(varchar(15),@DelDate,103) 
+	AND
+		 Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_Report]
+(
+	@LSlipNo INT
+)
+AS
+
+DECLARE @TotWeight DECIMAL(18,2)
+DECLARE @TotPack VARCHAR(10)
+
+SET @TotPack=(SELECT CONVERT(INT,ROUND((SUM(LSP.Packages)),0)) FROM LorryAcSlipPackages LSP
+				JOIN LorryAcSlip LS ON LSP.LorryAcSlipID=LS.ID WHERE LS.SlipNo=@LSlipNo AND LS.Active=''True'')
+SET @TotWeight=(SELECT CONVERT(INT,(SUM(LSP.Weight)),0) FROM LorryAcSlipPackages LSP
+				JOIN LorryAcSlip LS ON LSP.LorryAcSlipID=LS.ID WHERE LS.SlipNo=@LSlipNo AND LS.Active=''True'')
+
+BEGIN
+	SELECT
+		LS.SlipNo
+		,CONVERT(VARCHAR(10),LS.Date,103) as Date
+		,LS.LorryNo
+		,UPPER(LS.StartFrom) as StartFrom
+		,UPPER(LS.EndTo) as EndTo
+		,LSP.ChallanNo
+		,UPPER(LSP.Destination) as Destination
+		,LSP.Packages
+		,LSP.Weight
+		,UPPER(LSP.Collections) as Collections
+		,@TotWeight as TotWeight
+		,@TotPack as TotPackages
+		,LS.LorryHire
+		,LS.Advance
+		,LS.Balance
+		,UPPER(LS.FreightPayable) as FreightPayable
+	FROM
+		LorryAcSlipPackages LSP
+	JOIN
+		LorryAcSlip LS
+	ON
+		LSP.LorryAcSlipID=LS.ID
+	LEFT OUTER JOIN
+		AddressBook AB
+	ON
+		LS.AgentID=AB.ID
+	WHERE
+		LS.SlipNo=@LSlipNo
+	AND
+		LS.Active=''True''
+	AND
+		LSP.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_I]
+(
+	@LSlip					VARCHAR(20)
+	,@Date					DATETIME
+	,@LorryDate				DATETIME
+	,@LorryNo				VARCHAR(20)
+	,@StartFrom				VARCHAR(30)
+	,@DestTo				VARCHAR(30)
+	,@LorryToPay			DECIMAL(18,2)
+	,@LorryToPayBalance		DECIMAL(18,2)
+	,@LorryHire				DECIMAL(18,2)
+	,@Advance				DECIMAL(18,2)
+	,@Balance				DECIMAL(18,2)
+	,@FreightPayable		VARCHAR(25)
+	,@AgentID				INT
+	,@UserID				VARCHAR(20)
+)
+AS
+
+BEGIN
+	DECLARE @LorrySlipID AS INT   
+	
+	IF NOT EXISTS(SELECT SlipNo FROM LorryAcSlip WHERE SlipNo=@LSlip AND Active=''True'')
+	
+	INSERT INTO LorryAcSlip
+		(
+			SlipNo
+			,Date
+			,LorryDate
+			,LorryNo
+			,StartFrom
+			,EndTo
+			,AgentID
+			,LorryToPay
+			,LorryToPayBalance
+			,LorryHire
+			,Advance
+			,Balance
+			,FreightPayable
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			@LSlip				
+			,@Date	
+			,@LorryDate			
+			,@LorryNo			
+			,@StartFrom			
+			,@DestTo	
+			,@AgentID
+			,@LorryToPay
+			,@LorryToPayBalance		
+			,@LorryHire			
+			,@Advance			
+			,@Balance				
+			,@FreightPayable		
+			,''True''			
+			,@UserID			
+			,GETDATE()
+		);
+  SET @LorrySlipID = SCOPE_IDENTITY()         
+
+--	UPDATE 
+--		AutoGeneration
+--	SET
+--		LorryAcSlip_SlipNo=@LSlip;
+	
+  SELECT @LorrySlipID
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+SET @SQLString='CREATE PROCEDURE [dbo].[LorryAcSlipPackages_I]
+(
+	@LorrySlipID			INT
+	,@ChallanNo				VARCHAR(30)
+	,@Destination			VARCHAR(50)
+	,@Packages				DECIMAL(18,2)
+	,@Weight				DECIMAL(18,2)
+	,@Collection			VARCHAR(30)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+BEGIN
+	INSERT INTO LorryAcSlipPackages
+		(
+			LorryAcSlipID
+			,ChallanNo
+			,Destination
+			,Packages
+			,Weight
+			,Collections
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			@LorrySlipID	
+			,@ChallanNo		
+			,@Destination			
+			,@Packages		
+			,@Weight
+			,@Collection	
+			,''TRUE''		
+			,@UserID	
+			,GETDATE()			
+		)
+    
+	SELECT ''1''
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_V]
+(
+	@LSlip INT
+)
+AS
+
+DECLARE @ID INT
+DECLARE @TotPack INT
+DECLARE @TotWeight DECIMAL(18,2)
+DECLARE @LorryToPay DECIMAL(18,2)
+DECLARE @LorryHire DECIMAL(18,2)
+DECLARE @LorryBal DECIMAL(18,2)
+
+SET @ID=(SELECT ID FROM LorryAcSlip WHERE SlipNo=@LSlip AND Active=''True'')
+
+SET @TotPack=(SELECT ISNULL(SUM(LSP.Packages),0) FROM LorryAcSlipPackages LSP JOIN LorryAcSlip LS
+				ON LSP.LorryAcSlipID=LS.ID WHERE LS.SlipNo=@LSlip AND LS.Active=''True'')
+SET @TotWeight=(SELECT ISNULL(SUM(LSP.Weight),0) FROM LorryAcSlipPackages LSP JOIN LorryAcSlip LS
+				ON LSP.LorryAcSlipID=LS.ID WHERE LS.SlipNo=@LSlip AND LS.Active=''True'')
+SET @LorryToPay=(SELECT ISNULL(SUM(ToPay),0) FROM LorryChallanDescription LI JOIN LorryChallan L
+				ON L.ID=LI.LorryChallanID WHERE ChallanNo IN(
+				SELECT ChallanNo FROM LorryAcSlipPackages WHERE LorryAcSlipID=@ID AND Active=''True''	))
+SET @LorryHire=(SELECT LorryHire FROM  LorryAcSlip WHERE SlipNo=@LSlip AND Active=''True'' )
+SET @LorryBal=@LorryToPay-@LorryHire
+
+BEGIN
+	SELECT 
+		LS.ID
+		,CONVERT(VARCHAR(10),LS.Date,103) as Date
+		,LS.SlipNo
+		,LS.LorryNo
+		,LS.StartFrom
+		,LS.EndTo
+		,LS.AgentID as AgentID
+		,AB.Name as AgentName
+		,CONVERT(VARCHAR(10),LS.LorryDate,103) as LorryDate
+		,@LorryToPay as LorryToPay
+		,@LorryBal as LorryToPayBalance
+		,@LorryHire as LorryHire
+		,LS.Advance
+		,LS.Balance
+		,LS.FreightPayable
+	FROM
+		LorryAcSlip LS
+	LEFT OUTER JOIN
+		AddressBook AB
+	ON
+		LS.AgentID=AB.ID
+	WHERE
+		LS.SlipNo=@LSlip
+	AND
+		LS.Active=''True''
+END
+
+BEGIN
+	SELECT
+		ID as LorryAcSlipID
+		,ChallanNo
+		,Destination
+		,Packages
+		,Weight
+		,Collections
+		,@TotWeight as TotalWeight
+		,@TotPack as TotalPackages
+	FROM
+		LorryAcSlipPackages
+	WHERE
+		LorryAcSlipID=@ID	
+	AND 
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_Agent_V]
+@Agent VARCHAR(20)
+AS
+
+BEGIN
+	SELECT
+		AddrB.ID
+	FROM
+		AddressBook AddrB
+	JOIN
+		AddressInfo AddrI
+	ON
+		AddrB.AddressInfoID=AddrI.ID
+	WHERE
+		AddrB.Name=@Agent
+	AND
+		AddrB.Active=''True''
+	AND
+		AddrI.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverReceipt_Report]
+(
+	@MRNo INT
+)
+
+AS
+
+DECLARE @TotCh DECIMAL(18,2)
+SET @TotCh=(SELECT SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM DeliverySlip DS WHERE DS.MRNo=@MRNo AND DS.Active=''True'')
+
+BEGIN
+	SELECT
+		LCD.LRNo
+		,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+		,LCD.NoofPackages
+		,DS.ActualWeight as Weight
+		,LCD.Contents
+		,DS.MRNo
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+		,UPPER(DS.CustomerName) as CustomerName
+		,DS.Packing
+		,DS.PrivateMarks
+		,DS.Freight
+		,DS.Labour
+		,DS.DeliveryCh
+		,DS.StationaryCh
+		,DS.Demurrage
+		,DS.LocalCartage
+		,DS.ServiceTax
+		,@TotCh as Total
+--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+	FROM
+		DeliverySlip DS
+	JOIN
+		LorryChallanDescription LCD
+	ON
+		DS.LorryChallanDescID=LCD.ID
+	WHERE
+		MRNo=@MRNo
+	AND
+		LCD.Active=''True''
+	AND
+		DS.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_U]
+
+	@ID						INT
+	,@Date					DATETIME
+	,@LorryDate				DATETIME
+	,@LorryNo				VARCHAR(20)
+	,@StartFrom				VARCHAR(30)
+	,@DestTo				VARCHAR(30)
+	,@LorryHire				DECIMAL(18,2)
+	,@Advance				DECIMAL(18,2)
+	,@LorryToPayBalance		DECIMAL(18,2)
+	,@LorryToPay			DECIMAL(18,2)
+	,@Balance				DECIMAL(18,2)
+	,@FreightPayable		VARCHAR(30)
+	,@AgentID				INT
+	,@UserID				VARCHAR(20)
+
+
+AS
+
+BEGIN
+	UPDATE
+		LorryAcSlip
+	SET
+		Date=@Date
+		,LorryDate=@LorryDate		
+		,LorryNo=@LorryNo		
+		,StartFrom=@StartFrom		
+		,EndTo=@DestTo	
+		,AgentID=@AgentID
+		,LorryToPay=@LorryToPay
+		,LorryToPayBalance=@LorryToPayBalance			
+		,LorryHire=@LorryHire				
+		,Advance=@Advance
+		,Balance=@Balance				
+		,FreightPayable=@FreightPayable			
+		,UpdatedBy=@UserID			
+		,UpdatedDate=GETDATE()
+	WHERE
+		ID=@ID
+	AND
+		Active=''True''	
+
+	SELECT ''1''
+
+	
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[LorryAcSlipPackages_U]
+(
+	@LorryAcSlipID			INT
+	,@LorryAcID				INT
+	,@ChallanNo				INT
+	,@Destination			VARCHAR(50)
+	,@Packages				DECIMAL(18,2)
+	,@Weight				DECIMAL(18,2)
+	,@Collection			VARCHAR(20)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+BEGIN
+	IF(@LorryAcSlipID!=0)
+	BEGIN
+		UPDATE 
+			LorryAcSlipPackages
+		SET
+			LorryAcSlipID = @LorryAcID
+			,ChallanNo = @ChallanNo
+			,Destination= @Destination
+			,Packages = @Packages
+			,Weight = @Weight
+			,Collections = @Collection
+			,UpdatedBy = @UserID
+			,UpdatedDate = GETDATE()
+		WHERE
+			ID=@LorryAcSlipID
+		AND
+			Active=''True''
+SELECT ''1''
+
+	END
+	ELSE
+	BEGIN
+		INSERT INTO LorryAcSlipPackages
+			(
+				LorryAcSlipID
+				,ChallanNo
+				,Destination
+				,Packages
+				,Weight
+				,Collections
+				,Active
+				,UpdatedBy
+				,UpdatedDate
+			)
+		VALUES
+			(
+				@LorryAcID	
+				,@ChallanNo		
+				,@Destination			
+				,@Packages		
+				,@Weight	
+				,@Collection	
+				,''True''
+				,@UserID	
+				,GETDATE()	
+			)
+SELECT ''1''
+
+		UPDATE 
+			LorryAcSlipPackages
+		SET
+			LorryAcSlipID = @LorryAcID
+			,ChallanNo = @ChallanNo
+			,Destination= @Destination
+			,Packages = @Packages
+			,Weight = @Weight
+			,Collections = @Collection
+			,UpdatedBy = @UserID
+			,UpdatedDate = GETDATE()
+		WHERE
+			ID=@LorryAcSlipID
+		AND
+			Active=''True''
+SELECT ''1''
+	
+	END
+	
+	BEGIN
+	IF(@LorryAcSlipID='''')
+begin
+	update LorryAcSlipPackages
+	set active=''false''
+	where id=@LorryAcSlipID
+end
+END
+				
+SELECT ''1''
+
+
+	
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_U]
+(
+@ID            Int,
+--@BalanceAmount Decimal(18,2),
+@PaidAmount    Decimal(18,2),
+@PaidDate	   Datetime,
+@PaymentMode   Varchar(20),
+@ContactID     Int,
+@CustomerName  Varchar(20),
+@MRNO		   Int,	 
+@UserID		   Varchar(20)
+
+)
+AS
+BEGIN
+DECLARE @TotalBalance Decimal(18,2)
+DECLARE @TotAmt Decimal(18,2)
+DECLARE @Amt Decimal(18,2)
+DECLARE @Balance Decimal(18,2)
+DECLARE @Bal Decimal(18,2)
+DECLARE @OldBal Decimal(18,2)
+DECLARE @DiffAmt Decimal(18,2)
+DECLARE @OldBalance Decimal(18,2)
+DECLARE @OldBalance1 Decimal(18,2)	
+			UPDATE
+				 Payments
+			SET
+				PaidDate=@PaidDate				
+				,Amount=@PaidAmount
+				,PaymentMode=@PaymentMode
+				,UpdatedBy=@UserId
+				,UpdatedDate=getdate()
+			WHERE
+				
+				ID=@ID
+			AND
+				Active=''True''
+
+
+	SET @OldBal=(SELECT Amount FROM Payments WHERE ID=@ID AND Active=''True'')
+--	SET @TotAmt=(SELECT SUM(Amount) FROM DeliverySlip WHERE CustomerName=@CustomerName AND Active=''True'')
+--	SET @Amt=(SELECT SUM(Amount) FROM Payments WHERE ContactID=@ContactID AND Active=''True'')				
+--	SET @TotalBalance=(SELECT(@TotAmt-@Amt) as Total)
+	SET @Amt=(SELECT TotalBalance FROM TotalBalance WHERE ContactID=@ContactID AND Active=''True'')
+	SET @OldBalance1=(SELECT OldBalance FROM TotalBalance WHERE ContactID=@ContactID AND Active=''True'')		
+	SET @Bal=(SELECT Balance FROM DeliverySlip WHERE MRNO=@MRNO AND	Active=''True'')
+
+	IF(@PaidAmount>@OldBal)
+		BEGIN
+			SET @DiffAmt=(SELECT(@PaidAmount-@OldBal) as B )
+			SET @Balance=(SELECT(@Bal-@DiffAmt) as Bal)
+			SET @TotAmt=(SELECT (@Amt-@DiffAmt) as T)
+			SET @OldBalance=(SELECT (@OldBalance1-@DiffAmt) as Old)
+		END
+	ELSE
+		BEGIN
+			SET @DiffAmt=(SELECT(@OldBal-@PaidAmount) as B )
+			SET @Balance=(SELECT(@Bal+@PaidAmount) as Bal)
+			SET @TotAmt=(SELECT (@Amt+@DiffAmt) as T)
+			SET @OldBalance=(SELECT (@OldBalance1+@DiffAmt) as Old)
+		END
+
+		UPDATE 
+			DeliverySlip
+		SET
+			Balance=@Balance
+		WHERE
+			MRNO=@MRNO
+		AND
+			Active=''True''
+
+		UPDATE 
+				TotalBalance
+			SET	
+				TotalBalance=@TotAmt,
+				OldBalance=@OldBalance
+				,UpdatedBy=@UserId
+				,UpdatedDate=getdate()
+			WHERE
+				ContactID=@ContactID
+			AND
+				Active=''True''
+
+		UPDATE
+			Chennai_Acc.dbo.DebitsCredits
+		SET
+			Amount=@PaidAmount
+		WHERE
+			PaymentID=@ID
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryAcSlip_D]
+(
+	@ID INT
+	,@UserID VARCHAR(20)
+)
+
+AS
+
+DECLARE @LorryAcSlipID INT
+SET @LorryAcSlipID=(SELECT ID FROM LorryAcSlip WHERE ID=@ID AND ACTIVE=''TRUE'')
+
+BEGIN
+	UPDATE 
+		LorryAcSlip
+	SET
+		ACTIVE=''FALSE''
+	WHERE
+		ID=@ID
+	AND
+		ACTIVE=''TRUE''
+
+	UPDATE
+		LorryAcSlipPackages
+	SET
+		ACTIVE=''FALSE''
+	WHERE
+		LorryAcSlipID=@LorryAcSlipID
+	AND
+		ACTIVE=''TRUE''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE Proc [dbo].[Proc_Paging](@OptionId Int) As  
+Begin  
+	Create Table #Paging (PageIndex VarChar(3), PageText VarChar(3)) 	
+
+	If (@OptionId=1)
+	Begin
+		Declare @StartIndex Int, @EndIndex Int, @Incr Int  
+		Select @StartIndex = Ascii(''A'')  
+		Select @EndIndex = Ascii(''Z'')  
+		Select @Incr = @StartIndex  
+		While (@EndIndex >= @Incr )  
+		Begin  
+			Insert Into #Paging  
+			Select Char(@Incr), Char(@Incr)  
+			Select @Incr = @Incr+1  
+		End  
+	End
+	Else
+	begin
+		Insert Into #Paging
+		Select Distinct Upper(Left(Cus_Name,1)) [PageIndex], 
+		Upper(Left(ItemName,1))[PageText] 
+		from ItemName Order By PageText Asc
+	End
+
+	Insert Into #Paging Values (''All'', ''All'')  
+	Select * from #Paging 
+End'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliveryCredit_DebitsCredits_Cr]
+(
+	@Cust VARCHAR(20)
+)
+
+AS
+
+SET NOCOUNT ON;
+
+BEGIN
+	SELECT
+		MRNo
+	FROM
+		DeliverySlip
+	WHERE
+		CustomerName=@Cust
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StockDetails_Item_S]
+AS
+
+BEGIN
+	SELECT
+		ID
+		,ItemName
+	FROM
+		ItemMaster
+	WHERE
+		Active=''TRUE''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookingDetails_Report]
+(
+	@LRNo INT
+)
+AS
+
+BEGIN
+	SELECT
+		BD.LRNo
+		,CONVERT(VARCHAR(10),BD.BookingDate,103) as BookingDate
+		,AB.Name as ConsignorName
+		,AI.Address as ConsignorAddress
+		,ABC.Name as ConsigneeName
+		,AI.Address as ConsigneeAddress
+		,ABA.Name as AgentName
+		,BD.Freight
+		,BD.HandlingCharges
+		,BD.CartageCharges
+		,BD.StatisticalCharges
+		,BD.MiscExp
+		,BD.Insurance
+		,BD.AOC
+		,BD.ServiceTax
+		,UPPER(BD.InsuranceCoName) as InsuranceCoName
+		,BD.PolicyNo
+		,CONVERT(VARCHAR(10),BD.PolicyDate,103) as PolicyDate
+		,UPPER(BD.Risk) as Risk
+		,UPPER(BD.StartFrom) as StartFrom
+		,UPPER(BD.DestTo) as DestTo
+		,BI.NoOfPackages
+		,UPPER(IM.ItemName) as Description
+		,BI.ActualWeight
+		,BI.ChargedWeight
+	,(BD.Freight + BD.HandlingCharges + BD.CartageCharges + BD.StatisticalCharges
+			+ BD.MiscExp + + BD.Insurance + BD.AOC + BD.ServiceTax) as Total
+	FROM
+		BookingDetailsItem BI
+	JOIN
+		BookingDetails BD
+	ON
+		BI.BookingDetailsID=BD.ID
+	LEFT OUTER JOIN
+		AddressBook AB
+	ON
+		BD.ConsignorID=AB.ID
+	LEFT OUTER JOIN
+		AddressBook ABC
+	ON
+		ABC.ID=BD.ConsigneeID
+	LEFT OUTER JOIN
+		AddressBook ABA
+	ON
+		ABA.ID=BD.AgentID
+	JOIN
+		AddressInfo AI
+	ON
+		AB.AddressInfoID=AI.ID
+	LEFT OUTER JOIN
+		AddressInfo AIC
+	ON
+		AIC.ID=ABC.AddressInfoID
+	JOIN
+		ItemMaster IM
+	ON
+		IM.ID=BI.ItemMasterID
+	WHERE
+		BD.LRNO=@LRNo
+	AND
+		BD.Active=''True''
+	AND
+		AB.Active=''True''
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_LoadGrid]
+(
+@ContactID int
+)
+AS
+BEGIN
+	SELECT
+		P.ID
+		,P.PaymentType
+		,P.MRNO
+		,P.ContactId
+		,A.Name as PartyName
+		,Convert(Varchar(20),P.PaidDate,103)as  PaidDate
+		,P.Amount as PaidAmount		 
+		,P.PaymentMode
+		,T.TotalBalance as BalanceAmount
+	FROM
+	    Payments P
+	JOIN
+		AddressBook A
+	ON
+		P.ContactId=A.Id
+	JOIN
+		TotalBalance T
+	ON
+		A.Id=T.ContactID
+	WHERE
+		P.ContactId=@ContactID
+	AND
+		P.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_Cancel]
+(
+	@MRNo	INT
+--	,@Cust	VARCHAR(50)
+	,@DeliveryDate	DATETIME
+	,@BranchName VARCHAR(50)
+	,@UserID	VARCHAR(30)
+)
+
+AS
+
+BEGIN
+	INSERT INTO	DeliverySlip
+	(
+		MRNo
+		,CustomerName
+		,DeliveryDate
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+	)
+	VALUES
+	(
+		@MRNo
+		,''Cancelled''
+		,@DeliveryDate
+		,@BranchName
+		,''True''
+		,@UserID
+		,GETDATE()
+	)
+END
+
+BEGIN
+	UPDATE 
+			AutoGeneration
+	SET
+			DeliverySlip_MRNo=@MRNO
+	WHERE
+		BranchName=@BranchName
+	
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_Details_V]
+(
+--	@FromDate	DATETIME
+--	,@ToDate	DATETIME
+--	,@CustomerName	VARCHAR(20)
+	@LRN		INT,
+	@BranchName VARCHAR(50)
+)
+
+AS
+DECLARE @Name varchar(25)
+SET @Name=(SELECT CustomerName FROM DeliverySlip ds WHERE MRNO=@LRN AND BranchName=@BranchName AND Active=''True'')
+IF(@Name=''Cancelled'')
+BEGIN
+
+SELECT DISTINCT 
+		
+		DS.ID as DSID
+		
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+		,DS.CustomerName 
+		,DS.DeliveryDate
+		,DS.MRNO
+		,DS.Packing
+		,DS.PrivateMarks
+		,DS.ActualWeight
+		,DS.Freight
+		,DS.Labour
+		,DS.DeliveryCh
+		,DS.StationaryCh
+		,DS.Demurrage
+		,DS.LocalCartage
+		,DS.ServiceTax		
+		,(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax) as Total
+	FROM
+		DeliverySlip DS
+	
+	WHERE
+		DS.MRNO=@LRN
+	AND
+		DS.BranchName=@BranchName
+	AND
+		DS.Active=''True''
+
+
+END
+ELSE
+BEGIN
+	SELECT DISTINCT 
+		
+		DS.ID as DSID
+		,LCD.LRNo		
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+		,DS.CustomerName 
+		,DS.DeliveryDate
+		,DS.MRNO
+		,DS.Packing
+		,DS.PrivateMarks
+		,DS.ActualWeight
+		,DS.Freight
+		,DS.Labour
+		,DS.DeliveryCh
+		,DS.StationaryCh
+		,DS.Demurrage
+		,DS.LocalCartage
+		,DS.ServiceTax		
+		,Convert(Varchar(20),LCD.LRDate,103) as ChallanDate
+--		,AB.CustomerName
+		,LCD.LRNo
+		,LCD.NoOfPackages
+		,LCD.Contents
+		,LCD.Weight as TotalWeight
+		,(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax) as Total
+--		,IB.InvoiceAmount as InvoiceAmount
+--		,IB.BalanceAmount as TotalBalance
+--		,@PAmt as PaidAmount
+	FROM
+		DeliverySlip DS
+	JOIN
+		LorryChallanDescription LCD
+	ON
+		LCD.ID=DS.LorryChallanDescID 
+	WHERE
+--		RBD.LRNO=@LRN
+--	AND
+		DS.MRNO=@LRN
+	AND
+		DS.BranchName=@BranchName
+--	AND
+--		DS.CustomerName=@CustomerName
+--	AND
+--		DeliveryDate BETWEEN @FromDate AND @ToDate
+	AND
+		DS.Active=''True''
+	AND
+		LCD.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Customer_Report]
+(
+	@TDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+;WITH CustomerReport AS 
+(
+SELECT DISTINCT Name,CASE WHEN (SUM(Dbal)>(isnull(SUM(Cbal),0)+isnull(SUM(PBal),0))) THEN
+		(ISNULL(SUM(DBal),0)-(ISNULL(SUM(PBal),0)+ISNULL(SUM(CBal),0)))ELSE 0 END as TotalBalance FROM
+(
+--		SELECT AB.Name AS Name,ISNULL(sum(Balance),0)  AS DBal,ISNULL(NULL,0) AS CBal,ISNULL(NULL,0) AS PBal FROM DailyBalance DB JOIN AddressBook AB
+--			ON DB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH'' AND DB.Active=''True''
+--			AND AB.Active=''True'' AND DB.Date<=CONVERT(VARCHAR(10),@TDate,101) GROUP BY NAME
+
+		SELECT AB.Name AS Name,ISNULL(sum(balance),0)  AS DBal,ISNULL(NULL,0) AS CBal,ISNULL(NULL,0) AS PBal FROM DeliverySlip DS 
+			JOIN AddressBook AB ON DS.CustomerName=AB.Name WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH'' AND DS.Active=''True''
+			AND AB.Active=''True'' AND DS.BranchName=@BranchName AND DS.DeliveryDate<=CONVERT(VARCHAR(10),@TDate,101) GROUP BY NAME
+
+        UNION 
+        SELECT AB.Name AS Name,ISNULL(NULL,0) AS DBal, ISNULL((CreditBalance),0) AS CBal,ISNULL(NULL,0) AS PBal FROM CreditorsBalance CB JOIN AddressBook AB
+			ON CB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND CB.BranchName=@BranchName AND AB.Active=''True'' AND CB.Active=''True'' 
+			AND CB.ContactID IN(SELECT DB.ContactID FROM DailyBalance DB JOIN AddressBook AB ON	DB.ContactID=AB.ID 
+			WHERE AB.GroupName=''Sundry Debtors'' AND AB.Active=''True'' AND DB.Active=''True'' AND DB.BranchName=@BranchName) 
+			AND CB.Date<=CONVERT(VARCHAR(10),@TDate,101)
+--		UNION 
+--        SELECT AB.Name AS Name,ISNULL(NULL,0) AS DBal,ISNULL(NULL,0) AS CBal, ISNULL(SUM(Amount),0) AS PBal FROM Payments P JOIN AddressBook AB
+--			ON P.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND P.Active=''True'' AND AB.Active=''True''
+----AND P.ContactID IN(SELECT CB.ContactID FROM CreditorsBalance CB JOIN AddressBook AB ON
+----			CB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND CB.Active=''True'') 
+--AND P.PaidDate<=CONVERT(VARCHAR(10),@TDate,101)
+--  GROUP BY Name
+) 
+	CustRep GROUP BY Name HAVING (ISNULL(SUM(DBal),0)-(ISNULL(SUM(PBal),0)+ISNULL(SUM(CBal),0))) > 0
+)
+
+SELECT NAME AS Name,TotalBalance AS TotalBalance,TotOutAmt=(SELECT SUM(TotalBalance) FROM CustomerReport) FROM CustomerReport'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_GridSelect]
+(
+@PartyName Varchar(50),
+@BranchName VARCHAR(50)
+
+)
+AS
+DECLARE @ContactId int
+DECLARE @PaidAmt DECIMAL(18,2)
+BEGIN
+SET @ContactId=(SELECT ID FROM AddressBook WHERE Name=@PartyName AND BranchName=@BranchName AND Active=''True'')
+	SELECT
+		D.ID
+		,A.ID as ContactID
+--		,D.CustomerName
+		,D.MRNO
+		,D.Amount
+		,D.Balance
+		,@PaidAmt as PaidAmount
+--		,T.TotalBalance
+	FROM
+		DeliverySlip D
+	JOIN	
+		AddressBook A	
+	ON	
+		A.[Name]=D.CustomerName
+	
+	WHERE
+		D.CustomerName=@PartyName
+	AND
+		D.BranchName=@BranchName
+	AND 
+		D.Active=''True''
+	AND
+		Balance!=0
+	AND
+		A.Active=1
+
+	Order BY MRNO
+END
+		BEGIN
+		--	SELECT 
+		--		T.TotalBalance
+		--	FROM
+		--		TotalBalance T
+		--	JOIN
+		--		AddressBook A
+		--	ON
+		--		T.ContactID=A.ID
+		--	WHERE
+		--		T.ContactID=@ContactId
+		--	AND 
+		--		T.Active=''True''
+			DECLARE @DBal Decimal(18,2)
+			DECLARE @PAmt Decimal(18,2)
+
+				SELECT ISNULL(SUM(Balance),0) as TotalBalance FROM DeliverySlip WHERE CustomerName=@PartyName AND BranchName=@BranchName AND Active=''True''
+--			SET @DBal=(SELECT ISNULL(SUM(Balance),0) FROM DailyBalance WHERE ContactID=@ContactId AND Active=''True'')
+--			SET @PAmt=(SELECT ISNULL(SUM(Amount),0) FROM Payments WHERE ContactID=@ContactId AND Active=''True'')
+--
+--			SELECT 
+--				TotalBalance=@DBal-@PAmt
+		END
+
+
+
+		BEGIN
+			DECLARE @MRNO Varchar(20)
+			SET @MRNO=''OldBalance''
+
+			SELECT 
+				DB.ID,C.ID as ContactID ,@MRNO as MRNO,Balance as Amount
+				,TotBalance as Balance,@PaidAmt as PaidAmount
+			FROM
+				AddressBook C 
+			JOIN
+				DailyBalance DB
+			ON
+				DB.ContactID=C.ID 
+			WHERE
+				 DeliveryID IS NULL AND DB.ContactID=@ContactId AND DB.BranchName=@BranchName AND DB.Active=''True'' AND TotBalance!=0
+		END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[AgentCode_Report]
+(
+	@FDate		DATETIME
+	,@TDate		DATETIME
+	,@AgentCode	INT
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+BEGIN
+	SELECT DISTINCT
+		(AB.Name+''-''+AB.AgentCode) as AgentName
+		,LCD.LRNo
+		,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+		,LCD.NoOfPackages
+		,LCD.Weight
+		,DS.ActualWeight
+		,(LCD.Weight-DS.ActualWeight) as DifferWeight
+	FROM
+		DeliverySlip DS
+	JOIN
+		LorryChallanDescription LCD
+	ON
+		DS.LorryChallanDescID=LCD.ID
+	JOIN
+		AddressBook AB
+	ON
+		LCD.AgentCode=AB.ID
+	WHERE
+		LCD.AgentCode=@AgentCode
+	AND
+		LCD.BranchName=@BranchName
+	AND
+		DS.DeliveryDate BETWEEN @FDate AND @TDate
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[UnDeliverySlip_Report]
+(
+@GodownNo Varchar(20)
+,@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+
+	SELECT
+		CONVERT(Varchar(20),LRDate,103) as LRDate,
+		LC.LRNo,
+		LC.Contents,
+		LC.Weight,
+		LC.PrivateMarks,
+		LC.NoofPackages as Packages,
+		UPPER(S.StoreNo) as StoreNo,
+		AB.Mob1 as Mobile
+ FROM
+	 LorryChallanDescription LC
+ LEFT OUTER JOIN 
+	DeliverySlip D on LC.ID=D.LorryChallanDescID 
+JOIN 
+	LorryChallan L
+on 
+	LC.LorryChallanID=L.ID 
+ LEFT OUTER JOIN 
+	AddressBook AB
+ON
+	 LC.PrivateMarks=AB.[name]
+JOIN
+	StoreMaster S
+ON
+	S.ID=LC.StoreID
+where 
+	LC.ID NOT IN(SELECT LorryChallanDescID from DeliverySlip WHERE LorryChallanDescID!='''' AND BranchName=@BranchName)
+AND
+	 L.ArrivalDate IS NOT NULL
+--AND 
+--	 AB.Types=''Customer''
+AND
+	S.StoreNo=@GodownNo
+AND
+	LC.BranchName=@BranchName
+AND
+	S.BranchName=@BranchName
+AND
+	LC.Active=''True''
+
+ORDER BY LRNo ASC
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_Insert]
+(
+@ContactID     int
+,@CustomerName Varchar(35)
+,@Type varchar(20)
+,@PaidDate datetime
+,@PaidAmount decimal(18,2)
+,@Amount decimal(18,2)
+,@PaymentMode varchar(20)
+,@MRNO Varchar(20)
+,@UserID varchar(20)
+,@ID int
+,@BranchName VARCHAR(50)
+)
+AS
+DECLARE @PaymentID INT
+DECLARE @TimeDate as datetime
+DECLARE @Time datetime
+
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@PaidDate+@Time
+
+	
+	
+BEGIN
+
+		IF(@MRNO=''OldBalance'')
+		BEGIN
+			UPDATE
+					DailyBalance
+				SET
+					TotBalance=TotBalance-@PaidAmount
+				WHERE
+--					ContactID=@ContactID
+--				AND					
+					DeliveryID IS NULL
+				AND
+					ID=@ID
+				AND
+					BranchName=@BranchName
+				AND
+					Active=''True''	
+		END
+	ELSE
+		BEGIN
+		
+				UPDATE
+					DeliverySlip
+				SET
+					Balance=Balance-@PaidAmount
+				WHERE
+					Active=''True''
+				AND
+					ID=@ID
+				AND
+					BranchName=@BranchName			
+		END
+
+	INSERT INTO
+		 Payments 
+		(
+			PaymentType
+			,MRNO
+			,ContactId
+			,PaidDate
+			,Amount
+			,PaidAmount
+			,PaymentMode
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+		@Type
+		,@MRNO
+		,@ContactID
+		,@TimeDate
+		,@PaidAmount 
+		,@Amount
+		,@PaymentMode
+		,@BranchName
+		,''True''
+		,@UserID
+		,getdate()
+		)
+		SET @PaymentID=SCOPe_IDENTITY()
+		SELECT @PaymentID
+		
+		UPDATE 
+		Chennai_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ItemCount+1
+	WHERE
+		BranchName=@BranchName
+	
+	DECLARE @EntryITCount INT
+	DECLARE @AccID INT
+	DECLARE @AccCashID INT
+	DECLARE @AccParcelID INT
+		
+	
+
+	SET @EntryITCount=(SELECT ItemCount FROM Chennai_Acc.dbo.Company_EntryItemCount WHERE BranchName=@BranchName)
+	SET @AccID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=@CustomerName AND BranchName=@BranchName)
+	SET @AccCashID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=''Cash'' AND BranchName=@BranchName)	
+	SET @AccParcelID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=''Parcel Service'' AND BranchName=@BranchName)	
+	
+
+INSERT INTO Chennai_Acc.dbo.DebitsCredits
+			(
+				Date
+				,AccountID
+				,PaymentID
+				,Amount
+				,BranchName
+				,CreatedAt
+				,CreatedBy
+				,Type
+				,Status
+				,Particular
+				,RelationAccount
+				,EntryItemCount
+			)
+		VALUES
+			(
+				@TimeDate
+				,@AccID
+				,@PaymentID
+--				,@AccParcelID
+				,@PaidAmount
+				,@BranchName
+				,GETDATE()
+				,@UserID
+				,''Cr''
+				,1
+				,''Payment Received for MRNo'' + '' '' + @MRNO
+				,@CustomerName
+				,@EntryITCount
+			)
+
+--		IF(@MRNO=''OldBalance'')
+--			BEGIN
+--				UPDATE
+--					DailyBalance
+--				SET
+--					TotBalance=TotBalance-@PaidAmount
+--				WHERE
+----					ContactID=@ContactID
+----				AND					
+----					DeliveryID IS NULL
+--					ID=@ID
+--				AND
+--					Active=''True''
+--				
+--			END
+--		ELSE
+--			BEGIN
+--				
+--				UPDATE
+--					DeliverySlip
+--				SET
+--					Balance=Balance-@PaidAmount
+--				WHERE
+--					Active=''True''
+--				AND
+--					ID=@ID
+--				
+--			END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_Check_LRNO]
+(
+@LRNO varchar(10),
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT 
+		DS.LorryChallanDescID
+	FROM 
+		DeliverySlip DS
+	JOIN
+		LorryChallanDescription LD 
+	ON
+		LD.ID=DS.LorryChallanDescID
+	WHERE	
+		LRNO=@LRNO
+	AND
+		DS.BranchName=@BranchName
+	AND
+		DS.Active!=''false''
+	
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[ServiceTax_FreightReport]
+(
+	@FDate  DATETIME,
+	@TDate	DATETIME,
+	@BranchName VARCHAR(50)
+
+)
+
+AS
+
+
+
+BEGIN
+; WITH STFreight AS
+	(
+	SELECT 
+		DS.CustomerName AS CustomerName
+		,DS.MRNo AS MRNo
+		,LCD.LRNo AS LRNo
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) AS MRNDate
+		,DS.Freight AS Freight
+		,DS.ServiceTax AS ServiceTax
+		
+	FROM
+		DeliverySlip DS
+	JOIN
+		LorryChallanDescription LCD
+	ON
+		DS.LorryChallanDescID=LCD.ID
+	WHERE
+		DS.DeliveryDate BETWEEN CONVERT(VARCHAR(10),@FDate,101) AND CONVERT(VARCHAR(10),@TDate,101)
+	AND
+		DS.Active=''True''
+	AND
+		LCD.Active=''True''
+	AND
+		LCD.BranchName=@BranchName
+	AND
+		DS.BranchName=@BranchName
+	AND
+		DS.ServiceTax!=0
+		
+	)
+
+	SELECT CustomerName,MRNo,LRNo,MRNDate,Freight,ServiceTax,
+		TotFreight=(SELECT SUM(Freight) FROM STFreight),TotST=(SELECT SUM(ServiceTax) FROM STFreight) FROM STFreight
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_D]
+(
+--	@hID				INT
+	@DeliverySlipID	INT
+--	,@ConsigneeID		INT
+	--,@PaidAmt			DECIMAL(18,2)
+	,@BranchName		VARCHAR(50)
+	,@UserID			VARCHAR(25)
+)
+
+AS
+
+--DECLARE @InvBalID INT
+--SET @InvBalID=(SELECT ID FROM InvoiceBalance WHERE RecBookingDetID=@hID AND Active=''True'')
+
+BEGIN
+	UPDATE
+		DeliverySlip
+	SET
+		Active=''False''
+	WHERE
+		ID=@DeliverySlipID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+
+	UPDATE
+		Chennai_Acc.dbo.DebitsCredits
+	SET
+		Status=''False''
+	WHERE
+		DeliveryID=@DeliverySlipID
+	AND
+		BranchName=@BranchName
+	AND
+		Status=''True''
+
+	UPDATE
+		DailyBalance
+	SET
+		Active=''False''
+	WHERE
+		DeliveryID=@DeliverySlipID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_Grid_View]
+(
+	@FromDate	DATETIME
+	,@ToDate	DATETIME
+	,@CustID	VARCHAR(20)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+BEGIN
+
+SELECT DISTINCT
+		DS.ID
+		,DS.LorryChallanDescID
+		,DS.CustomerName as ConsigneeName		
+		,DS.MRNO
+	FROM
+		DeliverySlip DS
+	
+	WHERE
+		DeliveryDate BETWEEN @FromDate AND @ToDate
+	AND
+		DS.CustomerName=@CustID
+	AND
+		DS.BranchName=@BranchName
+	AND
+		DS.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_Cust_View]
+(
+	@FromDate	DATETIME
+	,@ToDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+BEGIN
+--	SELECT DISTINCT
+--		AB.ID as ConsigneeID
+--		,AB.Name	as ConsigneeName
+--	FROM
+--		DeliverySlip DS
+--	JOIN
+--		AddressBook AB
+--	ON
+--		DS.ContactID=AB.ID
+--	WHERE
+--		DeliveryDate BETWEEN @FromDate AND @ToDate
+--	AND
+--		DS.Active=''True''
+
+	SELECT DISTINCT
+		CustomerName
+	FROM
+		DeliverySlip DS
+	
+	WHERE
+		DeliveryDate BETWEEN @FromDate AND @ToDate
+	AND
+		BranchName=@BranchName
+	AND
+		DS.Active=''True''
+
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_Update]
+(
+@ID Int
+,@Type Varchar(20)
+,@MRNO Varchar(25)
+,@Date Datetime
+,@PaidAmount Decimal(18,2)
+,@Amount Decimal(18,2)
+,@PaymentMode Varchar(15)
+,@UserID Varchar(20)
+,@Balance Decimal(18,2)
+,@ContactID Int
+,@DeliveryID Int
+,@CustomerName Varchar(25)
+,@BranchName Varchar(50)
+)
+AS
+BEGIN
+DECLARE @PaymentID INT
+DECLARE @TimeDate as datetime
+DECLARE @Time datetime
+DECLARE @EntryITCount INT
+DECLARE @AccID INT
+DECLARE @AccCashID INT
+DECLARE @AccParcelID INT
+DECLARE @Pamt DECIMAL(18,2)
+SET @Time=(SELECT
+CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+SET @TimeDate=@Date+@Time
+
+SET @EntryITCount=(SELECT ItemCount FROM Chennai_Acc.dbo.Company_EntryItemCount WHERE BranchName=@BranchName)
+	SET @AccID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=@CustomerName AND BranchName=@BranchName)
+	SET @AccCashID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=''Cash'' AND BranchName=@BranchName)	
+	SET @AccParcelID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=''Parcel Service'' AND BranchName=@BranchName)	
+
+SET @Pamt=(SELECT ISNULL(SUM(Amount),0) FROM Payments WHERE MRNO=@MRNO AND ID!=@ID AND ContactId=@ContactID AND BranchName=@BranchName AND Active=''True'')
+	IF(@ID!=0)
+		BEGIN
+			
+--			IF(@Balance!=0)
+--			BEGIN
+--			DECLARE @Amt DECIMAL(18,2)
+--			DECLARE @TotAmt DECIMAL(18,2)
+--
+--			SET @Amt=(SELECT Amount FROM DeliverySlip WHERE ID=@DeliveryID AND Active=''True'')
+--			SET @TotAmt=@Amt-@PaidAmount
+		IF(@MRNO=''OLDBALANCE'')
+		BEGIN
+				UPDATE
+					DailyBalance
+				SET
+					TotBalance=Balance-(@Pamt+@PaidAmount)
+				WHERE
+					ID=@DeliveryID
+				AND
+					BranchName=@BranchName
+				AND
+					Active=''True''
+		END
+		ELSE
+		BEGIN
+				UPDATE
+					DeliverySlip
+				SET
+					Balance=Amount-(@Pamt+@PaidAmount)
+				WHERE
+					ID=@DeliveryID
+				AND
+					BranchName=@BranchName
+				AND
+					Active=''True''
+			
+		END
+
+			UPDATE
+				Payments
+			SET
+				PaymentType=@Type
+				,MRNO=@MRNO
+				,ContactId=ContactID
+				,PaidDate=@TimeDate
+				,Amount=@PaidAmount
+				,PaidAmount=@Amount
+				,PaymentMode=@PaymentMode
+				,UpdatedBy=@UserID
+				,UpdatedDate=Getdate()
+			WHERE
+				ID=@ID
+			AND
+				BranchName=@BranchName
+			AND
+				Active=''True''
+
+			UPDATE
+				Chennai_Acc.dbo.DebitsCredits
+			SET
+				Date=@TimeDate
+				,Accountid=@AccID
+--				,DeliveryID=@DeliveryID
+				,PaymentID=@ID
+				,Amount	=@PaidAmount			
+				,ModifyAt=Getdate()
+				,ModifyBy=@UserID
+				,RelationAccount=@CustomerName
+			WHERE
+				PaymentID=@ID
+			AND
+				BranchName=@BranchName
+			AND
+				Status=''True''	
+		END
+	ELSE
+		BEGIN
+
+			UPDATE
+					DeliverySlip
+				SET
+					Balance=Amount-(@Pamt+@PaidAmount)
+				WHERE
+					Active=''True''
+				AND
+					ID=@DeliveryID
+				AND
+					BranchName=@BranchName
+
+	
+			INSERT INTO
+		 Payments 
+		(
+			PaymentType
+			,MRNO
+			,ContactId
+			,PaidDate
+			,Amount
+			,PaidAmount
+			,PaymentMode
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+		@Type
+		,@MRNO
+		,@ContactID
+		,@TimeDate
+		,@PaidAmount 
+		,@Amount
+		,@PaymentMode
+		,@BranchName
+		,''True''
+		,@UserID
+		,getdate()
+		)
+		SET @PaymentID=SCOPe_IDENTITY()
+		SELECT @PaymentID
+		
+		UPDATE 
+		Chennai_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ItemCount+1
+		WHERE
+			BranchName=@BranchName
+	
+	
+		
+	
+
+	
+	
+
+INSERT INTO Chennai_Acc.dbo.DebitsCredits
+			(
+				Date
+				,AccountID
+				,PaymentID
+				,Amount
+				,CreatedAt
+				,CreatedBy
+				,Type
+				,Status
+				,Particular
+				,RelationAccount
+				,EntryItemCount
+			)
+		VALUES
+			(
+				@TimeDate
+				,@AccID
+				,@PaymentID
+--				,@AccParcelID
+				,@PaidAmount
+				,GETDATE()
+				,@UserID
+				,''Cr''
+				,1
+				,''Payment Received for MRNo'' + '' '' + @MRNO
+				,@CustomerName
+				,@EntryITCount
+			)
+		END
+	END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_View]
+(
+@PaidDate Datetime,
+@ContactID Int,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+
+; with  report as
+(
+SELECT
+	P. ID
+	,D.ID As DeliveryID
+	,DaliyBalanceID=CASE WHEN D.ID IS NULL THEN (SELECT ID FROM DailyBalance WHERE ContactID=@ContactID AND BranchName=@BranchName AND DeliveryID IS NULL AND Active=''True'') ELSE D.ID END
+	,PaymentType
+	,MRNO= CASE WHEN D.MRNO IS NULL THEN ''0'' ELSE D.MRNO END
+	,ContactID=CASE WHEN D.ContactId IS NULL THEN @ContactID ELSE @ContactID END
+	,CONVERT(VARCHAR(15),PaidDate,103) PaidDate
+	,PaidAmount AS PAmt
+--	,P.Amount AS PaidAmount
+	,PaymentMode
+	,Amount=CASE WHEN D.Amount IS NULL THEN (SELECT Balance FROM  DailyBalance WHERE ContactID=@ContactID AND BranchName=@BranchName AND DeliveryID IS NULL AND Active=''True'') ELSE D.Amount END
+	,Balance=CASE WHEN D.Balance IS NULL THEN (SELECT TotBalance FROM  DailyBalance WHERE ContactID=@ContactID AND BranchName=@BranchName AND DeliveryID IS NULL AND Active=''True'') ELSE D.Balance END
+	,PaidAmount=CASE WHEN (Amount=Balance) THEN NULL ELSE PAmt END
+ FROM
+	(
+	SELECT
+		ID
+		,PaymentType
+		,MRNO
+		,ContactId
+		,CONVERT(VARCHAR(15),PaidDate,103) PaidDate
+		,PaidAmount
+		,Amount as PAmt
+		,PaymentMode
+
+	FROM
+		Payments 
+	WHERE
+--		Active=''True''
+--	AND
+		PaidDate=@PaidDate
+	AND
+		BranchName=@BranchName
+
+	)P
+LEFT JOIN
+	(
+	SELECT
+		F.ID
+		,MRNO
+		,Amount
+		,Balance
+		,A.ID as ContactId
+	FROM
+		DeliverySlip F
+	JOIN
+		AddressBook A
+	ON
+		A.Name=F.CustomerName
+	WHERE
+		A.Active=''True''
+	AND
+		A.ID=@contactid
+	AND
+		F.BranchName=@BranchName
+	)D
+	ON
+		D.MRNO=P.MRNO
+	
+
+)
+
+SELECT  ID
+	,DeliveryID
+	,DaliyBalanceID
+	,PaymentType
+	,MRNO= CASE WHEN MRNO =0 THEN ''OLDBALANCE'' ELSE MRNO END
+	,ContactId
+	,CONVERT(VARCHAR(15),PaidDate,103) PaidDate
+	, PAmt
+	,PaidAmount
+	,PaymentMode
+	,Amount
+	,Balance FROM report ORDER BY DeliveryID
+
+DECLARE @DBal Decimal(18,2)
+DECLARE @PAmt Decimal(18,2)
+DECLARE @CustomerName Varchar(25)
+SET @CustomerName=(SELECT Name FROM AddressBook WHERE ID=@contactID AND Active=''True'')
+		SET @DBal=(SELECT ISNULL(SUM(Balance),0) FROM DailyBalance WHERE ContactID=@ContactId AND Active=''True'')
+		SET @PAmt=(SELECT ISNULL(SUM(Amount),0) FROM Payments WHERE ContactID=@ContactId AND Active=''True'')
+
+			SELECT 
+				TotalBalance=@DBal-@PAmt,@CustomerName as PartyName
+SELECT
+	ChequeNo
+	,CONVERT(VARCHAR(15),ChequeDate,103) as ChequeDate
+	,BankName
+FROM
+	Payments_chequeDetails PC
+JOIN
+	Payments P
+ON
+	P.ID=PC.PaymentsID
+
+WHERE
+	PaidDate=@PaidDate
+AND
+	ContactID=@ContactID
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LREnquiry_Report]
+(
+	@LRNo INT
+	,@BranchName VARCHAR(50)
+)
+AS
+
+
+--DECLARE @ArrivalDate Datetime
+--BEGIN
+--SET @ArrivalDate=(SELECT ArrivalDate FROM LorryChallan LC JOIN LorryChallanDescription LD 
+--					ON LD.LorryChallanID=LC.ID WHERE LD.LRNo=@LRNo AND LD.Active=''True'')
+--	
+--	IF convert(varchar(10),@ArrivalDate,103)!=''NULL''
+	BEGIN
+	IF NOT EXISTS(SELECT D.ID FROM DeliverySlip D JOIN LorryChallanDescription L ON L.ID=D.LorryChallanDescID WHERE Lrno=@LRNo 
+					AND L.BranchName=@BranchName AND D.Active=''true'')
+		BEGIN
+		SELECT
+			LC.ChallanNo
+			,CONVERT(VARCHAR(10),LC.ChallanDate,103) as ChallanDate
+			,UPPER(LC.StartFrom) as StartFrom
+			,UPPER(LC.EndTo) as EndTo
+			,CONVERT(VARCHAR(15),LC.ArrivalDate,103) as ArrivalDate
+			,LC.TruckNo
+			,UPPER(LC.DriverName) as DriverName
+			,AB.Name as TruckOwnerName
+			,AI.Address as TruckOwnerAddress
+--			,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+			,CONVERT(VARCHAR(10),LD.LRDate,103) as LRDate
+			,LD.LRNo
+			,LD.NoofPackages
+			,UPPER(LD.Contents) as Contents
+	--		,LD.StoreID as StoreID
+			,SM.StoreNo as StoreNo
+			,LD.Weight
+			,CONVERT(INT,ROUND((LD.ToPay),0)) as ToPay
+			,CONVERT(INT,ROUND((LD.Paid),0)) as Paid
+			,UPPER(LD.PrivateMarks) as Remarks
+			,LD.NoofPackages as TotPack
+			,LD.Weight as TotWeight
+			,MRNO=CASE WHEN DS.Active=''True'' THEN DS.MRNO ELSE '''' END
+			,DeliveryDate=CASE WHEN DS.Active=''True'' THEN CONVERT(VARCHAR(10),DS.DeliveryDate,103) ELSE '''' END
+			,CustomerName=CASE WHEN DS.Active=''True'' THEN DS.CustomerName ELSE '''' END
+	
+--			,DS.MRNO
+--			,DS.CustomerName
+	--		,@TotPack as TotPack
+	--		,@TotWeight as TotWeight
+		FROM
+			LorryChallanDescription LD
+		RIGHT OUTER	JOIN
+			LorryChallan LC
+		ON
+			LD.LorryChallanID=LC.ID
+		LEFT OUTER JOIN
+			AddressBook AB
+		ON
+			LC.TruckOwnerID=AB.ID
+		LEFT OUTER JOIN
+			AddressInfo AI
+		ON
+			AB.AddressInfoID=AI.ID
+		LEFT OUTER JOIN
+			StoreMaster SM
+		ON
+			LD.StoreID=SM.ID
+		LEFT OUTER	JOIN	
+			DeliverySlip DS
+		ON
+			DS.LorryChallanDescID=LD.ID
+
+		WHERE
+			LD.LRNo=@lrno
+		AND
+			LD.BranchName=@BranchName
+		AND
+			LD.Active=''True''
+--		AND
+--			DS.Active=''True''
+--		AND
+--			SM.Active=''True''
+--		AND
+--			AB.Active=''True''
+	END
+ELSE
+	BEGIN
+		SELECT
+			LC.ChallanNo
+			,CONVERT(VARCHAR(10),LC.ChallanDate,103) as ChallanDate
+			,UPPER(LC.StartFrom) as StartFrom
+			,UPPER(LC.EndTo) as EndTo
+			,CONVERT(VARCHAR(15),LC.ArrivalDate,103) as ArrivalDate
+			,LC.TruckNo
+			,UPPER(LC.DriverName) as DriverName
+			,AB.Name as TruckOwnerName
+			,AI.Address as TruckOwnerAddress
+--			,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+			,CONVERT(VARCHAR(10),LD.LRDate,103) as LRDate
+			,LD.LRNo
+			,LD.NoofPackages
+			,UPPER(LD.Contents) as Contents
+	--		,LD.StoreID as StoreID
+			,SM.StoreNo as StoreNo
+			,LD.Weight
+			,CONVERT(INT,ROUND((LD.ToPay),0)) as ToPay
+			,CONVERT(INT,ROUND((LD.Paid),0)) as Paid
+			,UPPER(LD.PrivateMarks) as Remarks
+			,LD.NoofPackages as TotPack
+			,LD.Weight as TotWeight
+			,MRNO=CASE WHEN DS.Active=''True'' THEN DS.MRNO ELSE '''' END
+			,DeliveryDate=CASE WHEN DS.Active=''True'' THEN CONVERT(VARCHAR(10),DS.DeliveryDate,103) ELSE '''' END
+			,CustomerName=CASE WHEN DS.Active=''True'' THEN DS.CustomerName ELSE '''' END
+	
+--			,DS.MRNO
+--			,DS.CustomerName
+	--		,@TotPack as TotPack
+	--		,@TotWeight as TotWeight
+		FROM
+			LorryChallanDescription LD
+		RIGHT OUTER	JOIN
+			LorryChallan LC
+		ON
+			LD.LorryChallanID=LC.ID
+		LEFT OUTER JOIN
+			AddressBook AB
+		ON
+			LC.TruckOwnerID=AB.ID
+		LEFT OUTER JOIN
+			AddressInfo AI
+		ON
+			AB.AddressInfoID=AI.ID
+		LEFT OUTER JOIN
+			StoreMaster SM
+		ON
+			LD.StoreID=SM.ID
+		LEFT OUTER	JOIN	
+			DeliverySlip DS
+		ON
+			DS.LorryChallanDescID=LD.ID
+
+		WHERE
+			LD.LRNo=@lrno
+		AND
+			LD.BranchName=@BranchName
+		AND
+			LD.Active=''True''
+		AND
+			DS.Active=''True''
+	END
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_Report]
+(
+@AID INT
+,@Date DATETIME
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+)
+AS
+--Declare @Cash DECIMAL(18,2)
+Declare @TotCash DECIMAL(18,2)
+Declare @TotCash1 DECIMAL(18,2)
+Declare @TotCash2 Varchar(10)
+Declare @Null INT
+Declare @NullDate datetime
+
+--SET @Cash=(SELECT MAX(ToPay) FROM LorryChallanDescription LCD JOIN DeliverySlip DS ON LCD.ID=DS.LorryChallanDescID
+--				WHERE DS.CustomerName=''CASH'' AND DS.DeliveryDate=@Date)
+SET @TotCash=(SELECT ISNULL(SUM(ToPay),0) FROM LorryChallanDescription LCD JOIN DeliverySlip DS ON LCD.ID=DS.LorryChallanDescID
+				WHERE DS.CustomerName!=''CASH'' AND DS.BranchName=@BranchName AND DS.Active=''True'' AND CONVERT(VARCHAR(10),DS.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103))
+SET @TotCash1=(SELECT ISNULL(SUM(ToPay),0) FROM LorryChallanDescription LCD JOIN DeliverySlip DS ON LCD.ID=DS.LorryChallanDescID
+				WHERE DS.CustomerName=''CASH'' AND DS.BranchName=@BranchName AND DS.Active=''True'' AND CONVERT(VARCHAR(10),DS.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103))
+
+
+--IF NOT EXISTS(SELECT DeliveryDate FROM DeliveryStatementReport WHERE DeliveryDate=@Date AND Active=''True'')
+
+
+BEGIN
+	SELECT
+		DSR.AID as AID
+		,DS.MRNO as MRNO
+		,CAST(LD.LRNO as VARCHAR(10))LRNO
+		,CONVERT(VARCHAR(15),LD.LRDate,103) as LRDate
+		,LD.NoofPackages
+		,DS.PrivateMarks
+		,DS.ActualWeight as Weight
+--		,@Cash
+		,LD.ToPay as Cash
+		,@NULL as Cash1
+		,@TotCash as TotAmt
+		,@TotCash1 as TotCash1
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as Date
+	FROM
+		DeliverySlip DS
+	RIGHT OUTER	JOIN
+		LorryChallanDescription LD
+	ON
+		DS.LorryChallanDescID=LD.ID,DeliveryStatementReport DSR
+	WHERE
+		CONVERT(VARCHAR(15),DS.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103)	
+		AND CONVERT(VARCHAR(15),DSR.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103)	
+	AND
+		DS.Active=''True''
+	AND
+		LD.Active=''True''
+	AND
+		DS.CustomerName!=''CASH''
+	AND 
+		DS.BranchName=@BranchName
+
+UNION ALL
+	SELECT
+		@NULL as AID
+		,DS.MRNO as MRNO
+		,UPPER(CAST(''Cancelled'' as VARCHAR(10))) as LRNo
+		,CONVERT(VARCHAR(10),@NullDate,103) as LRDate
+		,@NULL as NoofPackages
+		,DS.PrivateMarks as PrivateMarks
+		,@NULL as Cash
+		,DS.ActualWeight as Weight
+		,@NULL as Cash1
+		,@TotCash as TotAmt
+		,@TotCash1 as TotCash1
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as Date
+	FROM
+		DeliverySlip DS
+	WHERE
+		CONVERT(VARCHAR(15),DS.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103)	
+--		AND convert(varchar(15),DSR.DeliveryDate,103)=convert(varchar(15),@Date,103)	
+	AND
+		DS.Active=''True''
+	AND
+		DS.CustomerName=''Cancelled''
+	AND 
+		DS.BranchName=@BranchName
+
+UNION ALL
+	SELECT
+		DSR.AID as AID
+		,DS.MRNO as mrno
+		,CAST(LD.LRNO as VARCHAR(10))LRNO
+		,CONVERT(VARCHAR(15),LD.LRDate,103) as LRDate
+		,LD.NoofPackages
+		,DS.PrivateMarks as PrivateMarks
+		,LD.Weight
+		,@NULL as Cash1
+		,LD.ToPay as Cash
+		,@TotCash as TotCash1
+		,@TotCash1 as TotAmt
+		,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as Date
+	FROM
+		DeliverySlip DS
+	RIGHT OUTER	JOIN
+		LorryChallanDescription LD
+	ON
+		DS.LorryChallanDescID=LD.ID,DeliveryStatementReport DSR
+	WHERE
+		CONVERT(VARCHAR(15),DS.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103)	
+	AND CONVERT(VARCHAR(15),DSR.DeliveryDate,103)=CONVERT(VARCHAR(15),@Date,103)	
+
+	AND
+		DS.Active=''True''
+	AND
+		LD.Active=''True''
+	AND
+		DS.CustomerName=''CASH''
+	AND 
+		DS.BranchName=@BranchName
+
+ORDER BY DS.MRNO
+END
+
+
+
+IF NOT EXISTS(SELECT DeliveryDate FROM DeliveryStatementReport WHERE DeliveryDate=@Date AND BranchName=@BranchName AND Active=''True'')
+	BEGIN
+		INSERT INTO	DeliveryStatementReport
+			(
+				AID
+				,DeliveryDate
+				,BranchName
+				,Active
+				,CreatedBy
+				,CreatedDate
+			)
+		VALUES
+			(
+				@AID
+				,@Date
+				,@BranchName
+				,''True''
+				,@UserID
+				,GETDATE()
+			)
+		
+	UPDATE 
+		AutoGeneration
+	SET 
+		DeliveryStatement_No=@AID
+	WHERE
+		BranchName=@BranchName
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_View_InvoiceNo]
+(
+@PartyName varchar(20),
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT
+		 IB.InvoiceNo
+		 ,AB.ID as ContactID
+	FROM 
+		 InvoiceBalance IB
+	JOIN
+		 AddressBook AB
+	ON
+		IB.ContactId=AB.ID
+	WHERE 
+		Name=@PartyName
+	AND 
+		IB.BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Challan_View]
+(
+@ChallanNo int
+,@BranchName varchar(50)
+)
+AS
+BEGIN
+DECLARE @Mob VARCHAR(15)
+--DECLARE @ID int
+--SET @ID=(SELECT ID FROM LorryChallan WHERE ChallanNo=@ChallanNo AND Active=''True'')
+	SELECT 
+			LC.ID as LorryChallanID
+			,LC.ChallanNo
+			,LC.StartFrom
+			,LC.EndTo
+			,CONVERT(VARCHAR(10),LC.ArrivalDate,103) as ArrivalDate
+--			,LC.StoreID
+			--,SM.StoreNo
+			,LC.TruckNo
+			,LC.DriverName
+			,LC.DriverPhoneNo
+			,LC.TruckOwnerID
+			,AB.Name as OwnerName
+			,AI.Address as Address
+			,AI.City as City
+			,AI.Pincode as Pincode
+			,LC.AgentID
+			,ABA.Name as AgentName
+			,CONVERT(VARCHAR(10),LC.ChallanDate,103) as ChallanDate
+	FROM 
+			LorryChallan LC
+	LEFT OUTER JOIN
+			AddressBook AB
+	ON
+			LC.TruckOwnerID=AB.ID
+	LEFT OUTER JOIN
+			AddressInfo AI
+	ON
+			AB.AddressInfoID=AI.ID
+	LEFT OUTER JOIN
+			AddressBook ABA
+	ON
+			ABA.ID=LC.AgentID
+--	LEFT OUTER JOIN
+--			StoreMaster SM
+--	ON			
+--			LC.StoreID=SM.ID
+			
+	WHERE
+			LC.ChallanNo=@ChallanNo
+	AND
+			LC.BranchName=@BranchName
+	AND
+			LC.Active=''True''
+END
+
+BEGIN
+	SELECT 
+			LCD.LorryChallanID
+			, Date
+			,LCD.LRNo
+			,LCD.NoofPackages
+			,LCD.Contents
+			,StoreID
+			,LCD.Weight
+			,LCD.ToPay
+			,LCD.Paid
+			,AgentCode
+			,LCD.PrivateMarks
+			,LCD.Mob as mob1
+--			,A.mob1 
+FROM
+			
+	(
+	 SELECT
+		 LCD.ID AS  LorryChallanID
+		,rnk=RANK() OVER(ORDER BY LCD.ID)
+		,mob1
+	 FROM
+			LorryChallan L
+		JOIN
+			LorryChallanDescription LCD 
+		ON
+			L.ID=LCD.LorryChallanID
+		LEFT JOIN
+			AddressBook AB 
+		ON
+			AB.Name=LCD.PrivateMarks
+		WHERE
+			L.ChallanNo=@ChallanNo 
+		AND
+			L.BranchName=@BranchName
+		AND
+			LCD.BranchName=@BranchName
+		AND
+			LCD.Active=''True''
+		AND
+			L.Active=''True''
+	) A
+
+JOIN 
+	(
+	SELECT
+			rnk=RANK() OVER(ORDER BY LCD.ID),
+			LCD.ID AS LorryChallanID
+--			,LorryChallanID
+			,CONVERT(VARCHAR(10),LCD.LRDate,103) as Date
+			,LCD.LRNo
+			,LCD.NoofPackages
+			,LCD.Contents
+			,SM.StoreNo AS StoreID
+			,LCD.Weight
+			,LCD.ToPay
+			,LCD.Paid
+			,(AB.Name+''-''+AB.AgentCode) AS AgentCode
+			,LCD.PrivateMarks
+			,LCD.Mob
+	FROM
+		LorryChallan L
+	JOIN
+		LorryChallanDescription LCD 
+	ON
+		L.ID=LCD.LorryChallanID
+	LEFT JOIN
+		AddressBook AB 
+	ON
+		AB.ID=LCD.AgentCode 
+	LEFT JOIN
+		StoreMaster SM
+	ON
+		SM.ID=LCD.StoreID
+	WHERE
+		L.ChallanNo=@ChallanNo
+	AND
+		L.BranchName=@BranchName
+	AND
+		LCD.BranchName=@BranchName
+	AND
+		LCD.Active=''True''
+	AND
+		L.Active=''True''
+	) LCD 
+	ON
+		 LCD.rnk=A.rnk
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DeliverySlip_View]
+(
+@LRNO INT,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT 
+		LCD.ID
+		,Convert(Varchar(20),LCD.LRDate,103) as Date
+--		,AB.CustomerName
+		,LCD.LRNo
+		,LCD.NoOfPackages
+		,LCD.Contents
+		,LCD.Weight as TotalWeight
+	FROM
+		LorryChallan LC
+	JOIN 
+		LorryChallanDescription LCD
+	ON
+		LC.ID=LCD.LorryChallanID
+--	JOIN
+--		AddressBook AB
+--	ON
+--		LCD.
+	WHERE
+		LRNO=@LRNO
+	AND
+		LC.BranchName=@BranchName
+	AND
+		LC.Active=''True''
+	AND
+		LCD.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_D]
+(
+	@LCID INT
+	,@ChallanNo INT
+	,@BranchName VARCHAR(50)
+--	,@UserID VARCHAR(20)
+)
+
+AS
+
+DECLARE @LorryChallanID INT
+SET @LorryChallanID=(SELECT ID FROM LorryChallan WHERE ChallanNo=@ChallanNo
+						AND BranchName=@BranchName AND ACTIVE=''TRUE'')
+
+BEGIN
+	UPDATE 
+		LorryChallan
+	SET
+		ACTIVE=''FALSE''
+	WHERE
+		ID=@LCID
+	AND
+		BranchName=@BranchName
+	AND
+		ACTIVE=''TRUE''
+
+	UPDATE
+		LorryChallanDescription
+	SET
+		ACTIVE=''FALSE''
+	WHERE
+		LorryChallanID=@LorryChallanID
+	AND
+		BranchName=@BranchName
+	AND
+		ACTIVE=''TRUE''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_I]
+(
+@ChallanNo		INT,
+@StartFrom		Varchar(25),
+@EndTo			Varchar(25),
+@TruckNo		Varchar(20),
+@NameofDriver	Varchar(25),
+@TruckownerName	int,
+@AgentName		Varchar(25),
+@ChallanDate	Datetime,
+--@ArrivalDate	Datetime,
+--@StoreNo		Int,
+@DriverPhoneNo	Varchar(15),
+@BranchName		Varchar(50),
+@UserID			Varchar(25)
+)
+AS
+DECLARE @LorryChallanID INT   
+BEGIN
+	IF NOT EXISTS(SELECT ChallanNo FROM LorryChallan WHERE ChallanNo=@ChallanNo AND BranchName=@BranchName AND Active=''True'')
+	
+	INSERT INTO LorryChallan
+		(	
+		ChallanNo	
+		,StartFrom
+		,EndTo
+--		,ArrivalDate
+--		,StoreID
+		,TruckNo
+		,DriverName
+		,DriverPhoneNo
+		,TruckOwnerID
+		,AgentID
+		,ChallanDate
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+		)
+	VALUES
+		(
+		@ChallanNo
+		,@StartFrom		
+		,@EndTo	
+--		,@ArrivalDate
+--		,@StoreNo		
+		,UPPER(@TruckNo)		
+		,@NameofDriver	
+		,@DriverPhoneNo
+		,@TruckownerName	
+		,@AgentName
+		,@ChallanDate
+		,@BranchName
+		,''True''	
+		,@UserID
+		,getdate()
+		)	
+ SET @LorryChallanID = SCOPE_IDENTITY() 
+
+
+	UPDATE AutoGeneration
+	SET 
+		LorryChallan_ChallanNo=@ChallanNo
+SELECT    @LorryChallanID
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_U]
+(
+@ID				int,
+@StartFrom		Varchar(25),
+@EndTo			Varchar(25),
+@TruckNo		Varchar(20),
+@NameofDriver	Varchar(25),
+@TruckownerName	int,
+@AgentName		Varchar(25),
+@ChallanDate	Datetime,
+@ArrivalDate	Datetime,	
+--@StoreNo		int,
+@DriverPhoneNo  Varchar(15),
+@BranchName		Varchar(50),
+@UserID			Varchar(25)
+)
+AS
+BEGIN	
+	UPDATE
+		 LorryChallan
+	SET
+		StartFrom=@StartFrom
+		,EndTo=@EndTo
+		,ArrivalDate=@ArrivalDate
+--		,StoreID=@StoreNo
+		,TruckNo=UPPER(@TruckNo)
+		,DriverName=@NameofDriver
+		,DriverPhoneNo=@DriverPhoneNo
+		,TruckOwnerID=@TruckownerName
+		,AgentID=@AgentName
+		,BranchName=@BranchName
+		,ChallanDate=@ChallanDate
+		,UpadatedBy=@UserID
+		,UpdatedDate=getdate()
+	WHERE
+		
+		ID=@ID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+SELECT ''1''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallanNo_View]
+(
+@FromDate Datetime,
+@ToDate   Datetime,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT
+		 ChallanNo 
+	FROM 
+		 LorryChallan 
+	WHERE 
+		 ChallanDate 
+	BETWEEN 
+		 @FromDate
+	AND
+		 @ToDate
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_Report]
+(
+	@ChallanNo INT,
+	@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @TotPack INT
+DECLARE @TotWeight DECIMAL (18,2)
+SET @TotPack=(SELECT SUM(LD.NoofPackages) FROM LorryChallanDescription LD JOIN LorryChallan LC
+				ON LD.LorryChallanID=LC.ID WHERE LC.ChallanNo=@ChallanNo AND LC.BranchName=@BranchName AND LC.Active=''True'' AND LD.Active=''True'')
+SET @TotWeight=(SELECT SUM(LD.Weight) FROM LorryChallanDescription LD JOIN LorryChallan LC
+				ON LD.LorryChallanID=LC.ID WHERE LC.ChallanNo=@ChallanNo AND LC.BranchName=@BranchName AND LC.Active=''True'' AND LD.Active=''True'')
+
+BEGIN
+	SELECT
+		LC.ChallanNo
+		,UPPER(LC.StartFrom) as StartFrom
+		,UPPER(LC.EndTo) as EndTo
+		,UPPER(LC.TruckNo) as TruckNo
+		,UPPER(LC.DriverName) as DriverName
+		,AB.Name as TruckOwnerName
+		,AI.Address as TruckOwnerAddress
+		,CONVERT(VARCHAR(10),LC.ChallanDate,103) as ChallanDate
+		,CONVERT(VARCHAR(10),LD.LRDate,103) as LRDate
+		,LD.LRNo
+		,LD.NoofPackages
+		,UPPER(LD.Contents) as Contents
+--		,LD.StoreID as StoreID
+		,UPPER(SM.StoreNo) as StoreNo
+		,LD.Weight
+		,CONVERT(INT,ROUND((LD.ToPay),0)) as ToPay
+		,CONVERT(INT,ROUND((LD.Paid),0)) as Paid
+		,UPPER(LD.PrivateMarks) as Remarks
+		,@TotPack as TotPack
+		,@TotWeight as TotWeight
+	FROM
+		LorryChallanDescription LD
+	RIGHT OUTER	JOIN
+		LorryChallan LC
+	ON
+		LD.LorryChallanID=LC.ID
+	LEFT OUTER JOIN
+		AddressBook AB
+	ON
+		LC.TruckOwnerID=AB.ID
+	LEFT OUTER JOIN
+		AddressInfo AI
+	ON
+		AB.AddressInfoID=AI.ID
+	LEFT OUTER JOIN
+		StoreMaster SM
+	ON
+		LD.StoreID=SM.ID
+	WHERE
+		LC.ChallanNo=@ChallanNo
+	AND 
+		LC.BranchName=@BranchName
+	AND
+		LC.Active=''True''
+	AND
+		LD.Active=''True''
+--	AND
+--		SM.Active=''True''
+--	AND
+--		AB.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LREnquiry_LRNO]
+(
+@LRNO int
+,@BranchName VARCHAR(50)
+)
+AS
+BEGIN	
+select LRNO From LorryChallan LC JOIN LorryChallanDescription LD 
+	
+	ON LD.LorryChallanID=LC.ID WHERE LD.LRNo=@LRNo AND LD.BranchName=@BranchName AND LC.BranchName=@BranchName AND LD.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_Row_D]
+(
+@ID int,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	UPDATE
+		LorryChallanDescription 
+	SET
+		Active=''False''
+	WHERE
+		ID=@ID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[PaidAmount_Check]
+(
+	@FDate		DATETIME
+	,@ToDate		DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+--DECLARE @Amt DECIMAL(18,2)
+--SET @Amt=(SELECT Paid FROM LorryChallan
+
+
+BEGIN
+	
+	SELECT DISTINCT
+		Paid
+	FROM
+		LorryChallanDescription
+	WHERE
+		LRDate BETWEEN @FDate AND @ToDate
+	AND
+		BranchName=@BranchName
+	AND
+		Paid>0.0
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallanDesc_U]
+(
+@LID				int,
+@LorryChallanID		int,
+@LRDate				Datetime,
+@LRNo				int,
+@NoofPackages		int,
+@Contents			Varchar(50),
+@StoreID			Varchar(20),
+@Weight				Decimal(18,2),
+@ToPay				Decimal(18,2),
+@Paid				Decimal(18,2),
+@AgentCode			Varchar(25),
+@Remarks			Varchar(50),
+@Mob				VARCHAR(15),
+@BranchName			Varchar(50),
+@UserID				Varchar(25)
+)
+AS
+DECLARE @AgentCodeID int
+DECLARE @AgentName varchar(30)
+--SET @AgentCodeID=(SELECT ID FROM AddressBook WHERE Name=@AgentCode AND Active=''True'')
+		IF(@AgentCode!='''')
+
+			BEGIN
+				SET @AgentName=(select LEFT(@AgentCode, charindex(''-'', @AgentCode)-1))
+				SET @AgentCodeID=(SELECT ID FROM AddressBook WHERE Name=@AgentName AND BranchName=@BranchName
+									 AND Active=''True'')
+			END
+		ELSE
+			SET @AgentCodeID=NULL
+
+DECLARE @StoreMasterID Varchar(20)
+
+	IF(@StoreID=''--SELECT--'')
+	BEGIN
+		SET @StoreMasterID=NULL
+	END
+	ELSE
+	BEGIN
+		SET @StoreMasterID=(SELECT ID FROM StoreMaster WHERE StoreNo=@StoreID AND BranchName=@BranchName AND Active=''True'')
+	END
+BEGIN
+	IF(@LorryChallanID!=0)
+		BEGIN
+			UPDATE
+				LorryChallanDescription
+			SET	
+				
+				LRDate=@LRDate
+				,LRNo=@LRNo
+				,NoofPackages=@NoofPackages
+				,Contents=@Contents
+				,StoreID=@StoreMasterID
+				,Weight=@Weight
+				,ToPay=@ToPay
+				,Paid=@Paid
+				,AgentCode=@AgentCodeID
+				,PrivateMarks=@Remarks	
+				,Mob=@Mob			
+				,BranchName=@BranchName
+				,UpdatedBy=@UserID
+				,UpdatedDate=getdate()
+			WHERE
+				ID=@LorryChallanID
+			AND
+				BranchName=@BranchName
+			AND
+				Active=''True''
+
+			SELECT ''1''
+
+		END
+	ELSE
+		BEGIN
+			INSERT INTO LorryChallanDescription
+			(
+				LorryChallanID
+				,LRDate
+				,LRNo
+				,NoofPackages
+				,Contents
+				,StoreID
+				,Weight
+				,ToPay
+				,Paid
+				,AgentCode
+				,PrivateMarks
+				,Mob
+				,BranchName
+				,Active
+				,UpdatedBy
+				,UpdatedDate
+			)
+			VALUES
+			(
+				@LID
+				,@LRDate				
+				,@LRNo				
+				,@NoofPackages		
+				,@Contents			
+				,@StoreMasterID		
+				,@Weight				
+				,@ToPay				
+				,@Paid	
+				,@AgentCodeID			
+				,@Remarks
+				,@Mob
+				,@BranchName
+				,''True''			
+				,@UserID
+				,getdate()			
+			)
+	SELECT ''1''
+		UPDATE
+				LorryChallanDescription
+			SET	
+				
+				LRDate=@LRDate
+				,LRNo=@LRNo
+				,NoofPackages=@NoofPackages
+				,Contents=@Contents
+				,StoreID=@StoreMasterID
+				,Weight=@Weight
+				,ToPay=@ToPay
+				,Paid=@Paid
+				,AgentCode=@AgentCodeID
+				,PrivateMarks=@Remarks	
+				,Mob=@Mob	
+				,BranchName=@BranchName		
+				,UpdatedBy=@UserID
+				,UpdatedDate=getdate()
+			WHERE
+				ID=@LorryChallanID
+			AND
+				BranchName=@BranchName
+			AND
+				Active=''True''
+
+			SELECT ''1''
+
+		END
+	SELECT ''1''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[PaidAmount_Report]
+(
+	@FDate		DATETIME
+	,@TDate		DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+BEGIN
+	SELECT DISTINCT
+		LRNo
+		,CONVERT(VARCHAR(10),LRDate,103) as LRDate
+		,NoOfPackages
+		,Weight
+		,ToPay
+		,Paid
+	FROM
+		LorryChallanDescription LCD
+	WHERE
+		LRDate BETWEEN @FDate AND @TDate
+	AND
+		BranchName=@BranchName
+	AND Paid>0
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallanDesc_I]
+(
+@LorryChallanID		int,
+@LRDate				Datetime,
+@LRNo				int,
+@NoofPackages		int,
+@Contents			Varchar(50),
+@StoreID			Varchar(20),
+@Weight				Decimal(18,2),
+@ToPay				Decimal(18,2),
+@Paid				Decimal(18,2),
+@AgentCode			Varchar(50),
+@Remarks			Varchar(50),
+@Mob				VARCHAR(15),
+@BranchName			Varchar(50),
+@UserID				Varchar(25)
+)
+AS
+DECLARE @AgentName Varchar(50)
+DECLARE @AgentCodeID Varchar(50)
+DECLARE @StoreMasterID Varchar(20)
+
+	IF(@StoreID=''--SELECT--'')
+	BEGIN
+		SET @StoreMasterID=NULL
+	END
+	ELSE
+	BEGIN
+		SET @StoreMasterID=(SELECT ID FROM StoreMaster WHERE StoreNo=@StoreID AND BranchName=@BranchName
+							 AND Active=''True'')
+	END
+	IF(@AgentCode!='''')
+
+	BEGIN
+--		SELECT @AgentName=RIGHT(@AgentCode,len(@AgentCode)-charindex(''-'',@AgentCode))
+		SET @AgentName=(select LEFT(@AgentCode, charindex(''-'', @AgentCode)-1))
+		SET @AgentCodeID=(SELECT ID FROM AddressBook WHERE Name=@AgentName AND BranchName=@BranchName AND Active=''True'')
+	END
+ELSE
+SET @AgentCodeID=NULL
+
+
+BEGIN
+	INSERT INTO LorryChallanDescription
+		(
+			LorryChallanID
+			,LRDate
+			,LRNo
+			,NoofPackages
+			,Contents
+			,StoreID
+			,Weight
+			,ToPay
+			,Paid
+			,AgentCode
+			,PrivateMarks
+			,Mob
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			@LorryChallanID		
+			,@LRDate				
+			,@LRNo				
+			,@NoofPackages		
+			,@Contents			
+			,@StoreMasterID		
+			,@Weight				
+			,@ToPay				
+			,@Paid	
+			,@AgentCodeID			
+			,@Remarks
+			,@Mob
+			,@BranchName
+			,''True''			
+			,@UserID
+			,getdate()			
+		)
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[AgentName_Load_Report]
+(
+	@FDate	DATETIME
+	,@TDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+BEGIN
+	SELECT DISTINCT
+		AB.ID as AgentID
+--		,AB.Name as Agent
+		,(AB.Name+''-''+AB.AgentCode) as Agent
+	FROM
+		LorryChallanDescription LCD
+	JOIN
+		AddressBook AB
+	ON
+		LCD.AgentCode=AB.ID
+	WHERE
+		LRDate BETWEEN @FDate AND @TDate
+	AND
+		LCD.BranchName=@BranchName
+	AND 
+		AB.Active=''True'' AND LCD.Active=''True''
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_PayNameLoad]
+@BranchName VARCHAR(50)
+AS
+BEGIN
+	SELECT
+		Distinct Name,
+		C.ID
+		 
+	FROM
+		 AddressBook C
+	JOIN 
+		 Payments P
+	ON
+		C.ID=P.ContactID
+	WHERE
+		P.BranchName=@BranchName
+	AND
+		C.Active=''True''
+	AND
+		P.Active=''True''
+	ORDER BY Name
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_View_PartyName]
+(
+@FromDate Datetime,
+@Todate   Datetime,
+@BranchName VARCHAR(50)
+)
+As
+BEGIN
+	SELECT
+		Distinct Name as PartyName,
+		 ContactId 
+		
+	FROM
+		 Payments P 
+	join 
+		 AddressBook AB
+	on
+		P.ContactId=AB.ID
+	WHERE
+		P.PaidDate BETWEEN @FromDate AND @ToDate
+	AND
+		P.BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_CheckBal]
+(
+	@MRNo VARCHAR(30)
+	,@PDate DATETIME
+	,@ContactID INT
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+BEGIN
+	SELECT
+		SUM(Amount) AS CheckAmt
+	FROM
+		Payments
+	WHERE
+		MRNO=@MRNO
+	AND
+		PaidDate!=@PDate
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+	AND
+		ContactID=@ContactID
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_LoadDate]
+(
+@ContactID int,
+@FromDate Datetime,
+@ToDate  Datetime,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT Distinct 
+--		MRNO,
+		PaidDate
+--		,Amount 
+	FROM 
+		Payments 
+	WHERE 
+		ContactID=@ContactID 
+	AND
+		PaidDate BETWEEN @FromDate AND @ToDate
+	AND
+		BranchName=@BranchName
+	AND 
+		Active=''True''
+	AND 
+		Amount>0
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Creditors_Report]
+(
+	@TDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+;WITH CreditorsReport AS 
+(
+	SELECT DISTINCT Name,TotalBalance=CASE WHEN ((SUM(Cbal)+SUM(PBal))>SUM(Dbal)) THEN
+		((ISNULL(SUM(PBal),0)+ISNULL(SUM(CBal),0))-ISNULL(SUM(DBal),0))ELSE 0 END FROM
+(
+		SELECT AB.Name AS Name,ISNULL(SUM(Balance),0)  AS DBal,ISNULL(NULL,0) AS CBal,ISNULL(NULL,0) AS PBal 
+			FROM DailyBalance DB JOIN AddressBook AB ON DB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors''  AND DB.Active=''True''
+			AND DB.BranchName=@BranchName AND DB.ContactID IN(SELECT CB.ContactID FROM CreditorsBalance CB JOIN AddressBook AB ON
+			CB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND CB.Active=''True'' AND CB.BranchName=@BranchName) 
+			AND CONVERT(VARCHAR(10),DB.Date,101)<=CONVERT(VARCHAR(10),@TDate,101) GROUP BY Name
+        UNION 
+        SELECT AB.Name AS Name,ISNULL(NULL,0) AS DBal, ISNULL(SUM(CreditBalance),0) AS CBal,ISNULL(NULL,0) AS PBal 
+			FROM CreditorsBalance CB JOIN AddressBook AB ON CB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND CB.BranchName=@BranchName
+			AND CB.Active=''True'' AND CONVERT(VARCHAR(10),CB.Date,101)<=CONVERT(VARCHAR(10),@TDate,101) GROUP BY Name
+		UNION 
+        SELECT AB.Name AS Name,ISNULL(NULL,0) AS DBal,ISNULL(NULL,0) AS CBal, ISNULL(SUM(Amount),0) AS PBal 
+			FROM Payments P JOIN AddressBook AB	ON P.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND P.BranchName=@BranchName 
+			AND P.Active=''True''	AND P.ContactID IN(SELECT CB.ContactID FROM CreditorsBalance CB JOIN AddressBook AB ON
+			CB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND CB.Active=''True'' AND CB.BranchName=@BranchName) 
+			AND CONVERT(VARCHAR(10),P.PaidDate,101)<=CONVERT(VARCHAR(10),@TDate,101) GROUP BY Name
+) 
+	CreditorsRep GROUP BY Name HAVING ((ISNULL(SUM(PBal),0)+ISNULL(SUM(CBal),0))-ISNULL(SUM(DBal),0))>0
+)
+
+	SELECT NAME AS Name,TotalBalance AS TotalBalance,TotOutAmt=(SELECT SUM(TotalBalance) FROM CreditorsReport) FROM CreditorsReport'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_ChequeDet_I]
+(
+@PaymentsID int,
+@ChequeNo   int,
+@ChequeDate datetime,
+@BankName   varchar(25),
+@BranchName varchar(50),
+@UserId     varchar(25)
+)
+AS
+BEGIN
+	INSERT 
+		INTO
+		 Payments_ChequeDetails
+			(
+			PaymentsID
+			,ChequeNo
+			,ChequeDate
+			,BankName
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+			)
+		VALUES
+			(
+			@PaymentsID 
+			,@ChequeNo   
+			,@ChequeDate 
+			,@BankName
+			,@BranchName 
+			,''True''  
+			,@UserId 
+			,getdate()
+			)
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StockDetails_U]
+(
+@ID INT
+,@StoreNo VARCHAR(50)
+,@ItemName VARCHAR(50)
+,@Qty INT
+,@Unit INT
+,@LRNo VARCHAR(20)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+)
+AS
+
+BEGIN
+	UPDATE
+		StockDetails
+	SET
+		StoreNo=@StoreNo
+		,ItemName=@ItemName
+		,Quantity=@Qty
+		,Unit=@Unit
+		,LRNo=@LRNo
+		,UpdatedBy=@UserID
+		,UpdatedDate=GETDATE()
+	WHERE
+		ID=@ID 
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StockDetails_D]
+(
+@ID int,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	UPDATE
+		 StockDetails
+	SET	
+		Active=''False''
+	WHERE
+		ID=@ID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StockDetails_I]
+@StoreNo VARCHAR(50)
+,@ItemName VARCHAR(50)
+,@Qty INT
+,@Unit INT
+,@LRNo VARCHAR(20)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+AS
+
+BEGIN
+	INSERT INTO	StockDetails
+	(
+		StoreNo
+		,ItemName
+		,Quantity
+		,Unit
+		,LRNo
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+	)
+	VALUES
+	(
+		@StoreNo
+		,@ItemName
+		,@Qty
+		,@Unit
+		,@LRNo
+		,@BranchName
+		,''TRUE''
+		,@UserID
+		,GETDATE()
+	)
+		
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StockDetails_StoreNo_View]
+(
+@StoreNo Varchar(15)
+,@BranchName VARCHAR(50)
+
+)
+AS
+
+BEGIN
+	SELECT 
+		ID
+		,StoreNo
+		,ItemName
+		,Quantity
+		,Unit
+		,LRNo
+	FROM
+		StockDetails
+	WHERE
+		StoreNo=@StoreNo
+	AND
+		BranchName=@BranchName	
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_StoreNoview]
+@BranchName VARCHAR(50)
+As
+BEGIN
+	SELECT ID,UPPER(StoreNo) as StoreNo FROM StoreMaster WHERE BranchName=@BranchName AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_StoreNo_V]
+@StoreNo VARCHAR(20)
+,@BranchName VARCHAR(50)
+AS
+
+BEGIN
+	SELECT
+		ID
+	FROM
+		StoreMaster
+	WHERE
+		Active=''True''
+	AND
+		StoreNo=@StoreNo
+	AND
+		BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StoreMaster_D]
+@StoreID INT
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+
+AS
+
+BEGIN
+	UPDATE
+		StoreMaster
+	SET
+		Active=''False''
+	WHERE
+		ID=@StoreID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[UnDeliverySlip_GodownNo]
+@BranchName VARCHAR(50)
+AS
+BEGIN
+	SELECT
+		 Upper(StoreNo) as StoreNo
+   FROM 
+		StoreMaster
+	WHERE
+		Active=''True''
+	AND
+		BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallan_StoreNo]
+(
+@StoreNo varchar(20)
+,@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT ID FROM StoreMaster WHERE StoreNo=@StoreNo AND BranchName=@BranchName AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[StoreMaster_I]
+(
+@Store VARCHAR(35)=null
+,@StoreAddress VARCHAR(35)=null
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+)
+AS
+
+BEGIN
+IF NOT EXISTS (SELECT StoreNo FROM StoreMaster WHERE StoreNo=@Store AND BranchName=@BranchName AND Active=''True'')
+	
+	INSERT INTO StoreMaster
+		(
+		StoreNo
+		,StoreAddress
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+		)
+	VALUES
+		(
+		UPPER(@Store)
+		,@StoreAddress
+		,@BranchName
+		,''TRUE''
+		,@UserID
+		,GETDATE()
+		)
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StoreMaster_U]
+@StoreID INT
+,@Store VARCHAR(35)
+,@StoreAddress VARCHAR(35)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+
+AS
+
+BEGIN
+IF NOT EXISTS (SELECT StoreNo FROM StoreMaster WHERE StoreNo=@Store AND BranchName=@BranchName AND Active=''True'')
+
+	UPDATE
+		StoreMaster
+	SET
+		StoreNo=UPPER(@Store)
+		,StoreAddress=@StoreAddress
+		,UpdatedBy=@UserID
+		,UpdatedDate=GETDATE()
+	WHERE
+		ID=@StoreID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[StoreMaster_S]
+@BranchName VARCHAR(50)
+AS
+
+BEGIN
+	SELECT
+		ID,
+		StoreNo
+		,StoreAddress
+	FROM
+		StoreMaster
+	WHERE
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_V]
+(
+	@LRN INT
+	,@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @ID INT
+SET @ID=(SELECT ID FROM BookingDetails WHERE LRNO=@LRN AND BranchName=@BranchName AND Active=''True'')
+
+BEGIN
+	SELECT 
+		BD.ID
+		,CONVERT(VARCHAR(10),BD.BookingDate,103) as BookingDate
+		,BD.ConsignorID as ConsignorID
+		,BD.ConsigneeID as ConsigneeID
+		,BD.AgentID as AgentID
+		,BD.StoreID as StoreID
+		,SM.StoreNo as StoreNo
+		,AB.Name as ConsignorName
+		,ABC.Name as ConsigneeName
+		,ABA.Name as AgentName
+--		,ABA.ID as AgentID
+		,AI.Address as Address
+		,AI.City as City
+		,AI.Pincode as Pincode
+		,AIC.Address as ConsigneeAddr
+		,AIC.City as ConsigneeCity
+		,AIC.Pincode as ConsigneePincode
+		,BD.Freight
+		,BD.HandlingCharges
+		,BD.CartageCharges
+		,BD.StatisticalCharges
+		,BD.MiscExp
+		,BD.Insurance
+		,BD.AOC
+		,BD.ServiceTax
+		,BD.InsuranceCoName
+		,BD.PolicyNo
+		,CONVERT(VARCHAR(10),BD.PolicyDate,103) as PolicyDate
+		,BD.Risk
+		,BD.StartFrom
+		,BD.DestTo
+		,(BD.Freight + BD.HandlingCharges + BD.CartageCharges + BD.StatisticalCharges
+			+ BD.MiscExp + + BD.Insurance + BD.AOC + BD.ServiceTax) as Total
+	FROM
+		BookingDetails BD
+	LEFT OUTER JOIN
+		AddressBook AB
+	ON
+		BD.ConsignorID=AB.ID
+	LEFT OUTER JOIN
+		AddressBook ABC
+	ON
+		ABC.ID=BD.ConsigneeID
+	LEFT OUTER JOIN
+		AddressBook ABA
+	ON
+		ABA.ID=BD.AgentID
+	LEFT OUTER JOIN
+		AddressInfo AI
+	ON
+		AB.AddressInfoID=AI.ID
+	LEFT OUTER JOIN
+		AddressInfo AIC
+	ON
+		AIC.ID=ABC.AddressInfoID
+	LEFT OUTER JOIN
+		StoreMaster SM
+	ON
+		BD.StoreID=SM.ID
+	WHERE
+		BD.LRNO=@LRN
+	AND
+		BD.BranchName=@BranchName
+	
+	AND
+		BD.Active=''True''
+	
+--	AND
+--		SM.Active=''True''
+--	AND
+--		ABA.Active=''True''
+--	AND
+--		BD.DeliveryStatus=''True''
+	
+	
+END
+
+BEGIN
+	SELECT
+		BI.ID as BookingDetailsID
+		,BI.NoofPackages as Packages
+		,IM.ItemName as ItemName
+		,BI.Rate as Rate
+		,BI.ActualWeight as Weight
+		,BI.ChargedWeight as ChargedWeight
+		,BI.Total as Total
+	FROM
+		BookingDetailsItem BI
+	JOIN
+		BookingDetails BD
+	ON
+		BI.BookingDetailsID=BD.ID
+	JOIN
+		ItemMaster IM
+	ON
+		IM.ID=BI.ItemMasterID
+	WHERE
+		BookingDetailsID=@ID	
+	AND 
+		BI.Active=''True''
+--	AND
+--		BD.DeliveryStatus=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookingDetails_StoreNoview]
+@BranchName VARCHAR(50)
+As
+BEGIN
+	SELECT ID,StoreNo FROM StoreMaster WHERE
+	BranchName=@BranchName AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_TotalBal_U]
+(
+@ID INT,
+@Name Varchar(20),
+@Amount Decimal(18,2),
+@OldDate DATETIME,
+@BranchName VARCHAR(50),
+@UserID VARCHAR(20)
+)
+AS
+DECLARE @AddID INT
+DECLARE @TotID INT
+DECLARE @DebiID INT
+DECLARE @ContactID int
+DECLARE @TimeDate as datetime
+DECLARE @Date as datetime
+DECLARE @Time datetime
+SET @Date=(SELECT
+CONVERT(VARCHAR(10),GETDATE(),101) AS ForDate)      
+SET @Time=(SELECT
+CONVERT(VARCHAR(10),GETDATE(),108) AS ForTime)      
+SET @TimeDate=@OldDate+@Time
+
+SET @AddID=(SELECT ContactID FROM DailyBalance WHERE ID=@ID AND BranchName=@BranchName AND Active=''True'')
+SET @TotID=(SELECT ID FROM TotalBalance WHERE ContactID=@AddID AND BranchName=@BranchName AND Active=''True'')
+SET @DebiID=(SELECT ID FROM Chennai_Acc.dbo.DebitsCredits WHERE Accountid=@AddID AND BranchName=@BranchName AND Particular=''OldBalance'' AND DeliveryID IS NULL AND PaymentID IS NULL)
+BEGIN
+SET @ContactID=(SELECT ID FROM AddressBook WHERE [Name]=@Name AND BranchName=@BranchName AND Active=''True'')
+			UPDATE
+				TotalBalance
+			SET
+				ContactID=@ContactID
+				,Date=@TimeDate
+				,TotalBalance=@Amount
+				,OldBalance=@Amount
+				,OldBalanceAmount=@Amount
+				,UpdatedBy=@UserID
+				,UpdatedDate=@TimeDate
+					
+			WHERE
+					ID=	@TotID
+			AND 
+					BranchName=@BranchName
+			AND
+					Active=''True''
+				
+			
+	
+		UPDATE
+			DailyBalance
+		SET	
+				ContactID=@ContactID
+				,Date=@TimeDate
+				,Balance=@Amount
+				,TotBalance=@Amount			
+				,UpdatedBy=@UserID
+				,UpdatedDate=GETDATE()
+		WHERE
+			ID=@ID
+		AND 
+			BranchName=@BranchName
+		AND
+			Active=''True''
+
+
+	UPDATE 
+		Chennai_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ItemCount+1
+	
+	DECLARE @EntryITCount INT
+	DECLARE @AccID INT
+	DECLARE @AccCashID INT
+	SET @AccID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=@Name AND BranchName=@BranchName)
+	SET @AccCashID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=''Cash'' AND BranchName=@BranchName)	
+	SET @EntryITCount=(SELECT ItemCount FROM Chennai_Acc.dbo.Company_EntryItemCount WHERE BranchName=@BranchName)
+	
+	
+	BEGIN
+		UPDATE Chennai_Acc.dbo.DebitsCredits
+		SET
+				Date=@TimeDate
+				,AccountID=@AccID
+				,Amount=@Amount
+				,ModifyAt=CONVERT(VARCHAR(12),GETDATE(),100)
+				,ModifyBy=@UserID				
+				,Type=''Dr''
+				,Status=''1''
+				,Particular=''OldBalance''
+				,RelationAccount=@Name
+		WHERE
+			ID=@DebiID
+		AND 
+			BranchName=@BranchName
+				
+		
+END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_OldBal_Check]
+(
+@ContactName Varchar(50),
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT 
+		OldBalance ,
+		TotalBalance
+	FROM 
+		TotalBalance T 
+	JOIN 
+		AddressBook A 
+	ON 
+		A.ID=T.ContactID 
+	WHERE 
+		[Name]=@ContactName 
+	AND
+		T.BranchName=@BranchName
+	AND	
+		T.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_I]
+(
+	@LRNO					VARCHAR(20)
+	,@BookingDate			DATETIME
+	,@ConsignorID			INT
+	,@ConsigneeID			INT
+	,@StoreID				INT
+	,@InsuranceCoName		VARCHAR(30)
+	,@PolicyNo				VARCHAR(50)
+	,@Date					DATETIME
+	,@Risk					VARCHAR(50)
+	,@AgentID				INT
+	,@PFrom					VARCHAR(50)
+	,@PTo					VARCHAR(50)
+	,@FreightCharges		DECIMAL(18,2)
+	,@HandlingCharges		DECIMAL(18,2)
+	,@CartageCharges		DECIMAL(18,2)
+	,@StatisticalCharges	DECIMAL(18,2)
+	,@MiscExp				DECIMAL(18,2)
+	,@Insurance				DECIMAL(18,2)
+	,@AOC					DECIMAL(18,2)
+	,@ServiceTax			DECIMAL(18,2)
+	,@BranchName			VARCHAR(50)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+BEGIN
+	DECLARE @BookDetailsID AS INT   
+	
+	IF NOT EXISTS(SELECT LRNO FROM BookingDetails WHERE BranchName=@BranchName AND LRNO=@LRNO AND Active=''True'')
+	
+	INSERT INTO BookingDetails
+		(
+			LRNO
+			,BookingDate
+			,ConsignorID
+			,ConsigneeID
+			,AgentID
+			,StoreID
+			,DeliveryStatus
+			,Freight
+			,HandlingCharges
+			,CartageCharges
+			,StatisticalCharges
+			,MiscExp
+			,Insurance
+			,AOC
+			,ServiceTax
+			,InsuranceCoName
+			,PolicyNo
+			,PolicyDate
+			,InsuredAmt
+			,Risk
+			,StartFrom
+			,DestTo
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			@LRNO				
+			,@BookingDate		
+			,@ConsignorID		
+			,@ConsigneeID	
+			,@AgentID	
+			,@StoreID
+			,''False''
+			,@FreightCharges	
+			,@HandlingCharges
+			,@CartageCharges		
+			,@StatisticalCharges	
+			,@MiscExp
+			,@Insurance
+			,@AOC				
+			,@ServiceTax	
+			,@InsuranceCoName	
+			,@PolicyNo			
+			,@Date		
+			,@Insurance		
+			,@Risk				
+			,@PFrom				
+			,@PTo		
+			,@BranchName
+			,''TRUE''		
+			,@UserID	
+			,GETDATE()			
+		);
+  SET @BookDetailsID = SCOPE_IDENTITY()         
+
+	UPDATE 
+		AutoGeneration
+	SET
+		BookDetails_LRNo=@LRNO
+	WHERE
+		BranchName=@BranchName
+	
+  SELECT @BookDetailsID
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_D]
+(
+	@ID INT
+	,@UserID VARCHAR(20)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @BookDetailsID INT
+SET @BookDetailsID=(SELECT LRNo FROM BookingDetails WHERE ID=@ID AND BranchName=@BranchName AND ACTIVE=''TRUE'')
+
+BEGIN
+	UPDATE 
+		BookingDetails
+	SET
+	
+		ACTIVE=''FALSE''
+	WHERE
+		BranchName=@BranchName
+	AND
+		ID=@ID
+	AND
+		ACTIVE=''TRUE''
+
+	UPDATE
+		BookingDetailsItem
+	SET
+		ACTIVE=''FALSE''
+	WHERE
+		BranchName=@BranchName
+	AND
+		BookingDetailsID=@BookDetailsID
+	AND
+		ACTIVE=''TRUE''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_U]
+	@ID						INT
+	,@BookingDate			DATETIME
+	,@ConsignorID			INT
+	,@ConsigneeID			INT
+	,@StoreID				INT
+	,@InsuranceCoName		VARCHAR(30)
+	,@PolicyNo				VARCHAR(50)
+	,@Date					DATETIME
+	,@Risk					VARCHAR(50)
+	,@AgentID				INT
+	,@PFrom					VARCHAR(50)
+	,@PTo					VARCHAR(50)
+	,@FreightCharges		DECIMAL(18,2)
+	,@HandlingCharges		DECIMAL(18,2)
+	,@CartageCharges		DECIMAL(18,2)
+	,@StatisticalCharges	DECIMAL(18,2)
+	,@MiscExp				DECIMAL(18,2)
+	,@Insurance				DECIMAL(18,2)
+	,@AOC					DECIMAL(18,2)
+	,@ServiceTax			DECIMAL(18,2)
+	,@BranchName			VARCHAR(50)
+	,@UserID				VARCHAR(20)
+
+
+AS
+
+BEGIN
+	UPDATE
+		BookingDetails
+	SET
+		BookingDate=@BookingDate		
+		,ConsignorID=@ConsignorID		
+		,ConsigneeID=@ConsigneeID		
+		,StoreID=@StoreID	
+		,InsuranceCoName=@InsuranceCoName	
+		,PolicyNo=@PolicyNo			
+		,PolicyDate=@Date				
+		,InsuredAmt=@Insurance
+		,Risk=@Risk				
+		,AgentID=@AgentID			
+		,StartFrom=@PFrom				
+		,DestTo=@PTo				
+		,Freight=@FreightCharges	
+		,HandlingCharges=@HandlingCharges	
+		,CartageCharges=@CartageCharges	
+		,StatisticalCharges=@StatisticalCharges
+		,MiscExp=@MiscExp			
+		,Insurance=@Insurance			
+		,AOC=@AOC				
+		,ServiceTax=@ServiceTax		
+		,UpdatedBy=@UserID			
+		,UpdatedDate=GETDATE()
+	WHERE
+		ID=@ID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''	
+
+	SELECT ''1''
+
+	
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[BookDetailsItem_U]
+(
+	@BookDetailsItemID		INT
+	,@BookDetID				INT
+	,@NoOfPack				VARCHAR(30)
+	,@ItemName			    VARCHAR(50)
+	,@Rate					DECIMAL(18,2)
+	,@ActWeight				DECIMAL(18,2)
+	,@ChargedWeight			DECIMAL(18,2)
+	,@Total					DECIMAL(18,2)
+	,@BranchName			VARCHAR(50)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+DECLARE @ItemMasterID INT
+SET @ItemMasterID=(SELECT ID FROM ItemMaster WHERE ItemName=@ItemName AND BranchName=@BranchName AND Active=''True'')
+
+
+BEGIN
+	IF(@BookDetailsItemID!=0)
+	BEGIN
+		UPDATE 
+			BookingDetailsItem
+		SET
+			BookingDetailsID = @BookDetID
+			,NoOfPackages = @NoOfPack
+			,ItemMasterID= @ItemMasterID
+			,Rate=@Rate
+			,ActualWeight = @ActWeight
+			,ChargedWeight = @ChargedWeight
+			,Total = @Total
+			,UpdatedBy = @UserID
+			,UpdatedDate = GETDATE()
+		WHERE
+			ID=@BookDetailsItemID
+		AND
+			BranchName=@BranchName
+		AND
+			Active=''True''
+SELECT ''1''
+
+	END
+	ELSE
+	BEGIN
+		INSERT INTO BookingDetailsItem
+			(
+				BookingDetailsID
+				,NoofPackages
+				,ItemMasterID
+				,Rate
+				,ActualWeight
+				,ChargedWeight
+				,Total
+				,BranchName
+				,Active
+				,UpdatedBy
+				,UpdatedDate
+			)
+		VALUES
+			(
+				@BookDetID	
+				,@NoOfPack		
+				,@ItemMasterID	
+				,@Rate		
+				,@ActWeight		
+				,@ChargedWeight	
+				,@Total
+				,@BranchName
+				,''True''
+				,@UserID	
+				,GETDATE()	
+			)
+SELECT ''1''
+
+		UPDATE 
+			BookingDetailsItem
+		SET
+			BookingDetailsID = @BookDetID
+			,NoOfPackages = @NoOfPack
+			,ItemMasterID= @ItemMasterID
+			,Rate=@Rate
+			,ActualWeight = @ActWeight
+			,ChargedWeight = @ChargedWeight
+			,Total = @Total
+			,UpdatedBy = @UserID
+			,UpdatedDate = GETDATE()
+		WHERE
+			ID=@BookDetailsItemID
+		AND
+			BranchName=@BranchName
+		AND
+			Active=''True''
+SELECT ''1''
+
+	END
+			
+SELECT ''1''
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[BookDetailsItem_I]
+(
+	@BookDetailsID			INT
+	,@NoOfPack				VARCHAR(30)
+	,@ItemName			    VARCHAR(50)
+	,@Rate					DECIMAL(18,2)
+	,@ActWeight				DECIMAL(18,2)
+	,@ChargedWeight			DECIMAL(18,2)
+	,@Total					DECIMAL(18,2)
+	,@BranchName			VARCHAR(50)
+	,@UserID				VARCHAR(20)
+)
+AS
+
+DECLARE @ItemMasterID INT
+SET @ItemMasterID=(SELECT ID FROM ItemMaster WHERE ItemName=@ItemName AND BranchName=@BranchName AND Active=''True'')
+
+BEGIN
+	INSERT INTO BookingDetailsItem
+		(
+			BookingDetailsID
+			,NoOfPackages
+			,ItemMasterID
+			,Rate
+			,ActualWeight
+			,ChargedWeight
+			,Total
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+	VALUES
+		(
+			@BookDetailsID	
+			,@NoOfPack		
+			,@ItemMasterID
+			,@Rate
+			,@ActWeight		
+			,@ChargedWeight	
+			,@Total	
+			,@BranchName
+			,''TRUE''		
+			,@UserID	
+			,GETDATE()			
+		)
+    
+	SELECT ''1''
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_Row_D]
+(
+@ID int,
+@BranchName varchar(50)
+)
+AS
+BEGIN
+	UPDATE
+		BookingDetailsItem
+	SET
+		Active=''False''
+	WHERE
+		ID=@ID
+	AND
+		Branchname=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BrachName_Check]
+@Branch VARCHAR(50)
+
+AS
+
+BEGIN
+	IF EXISTS(SELECT * FROM Branches WHERE Branch=@Branch AND Active=''True'')
+	BEGIN
+		SELECT
+			Branch
+		From
+			Branches
+		WHERE
+			Active=''True''
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Login_Branch_Load]
+AS
+
+BEGIN
+	SELECT 
+		ID,
+		Branch
+	FROM
+		Branches
+	WHERE
+		Active=''True''
+	ORDER BY Branch ASC
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Branch_I]
+@UserName VARCHAR(50)
+,@Password VARCHAR(50)
+,@SecurityQues VARCHAR(50)
+,@SecurityAns VARCHAR(50)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(50)
+
+AS
+
+BEGIN
+	IF NOT EXISTS(SELECT * FROM Branches WHERE Branch=@BranchName AND Active=''True'')
+	BEGIN
+		INSERT INTO Branches
+		(
+			Branch
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			@BranchName
+			,''True''
+			,@UserID
+			,GETDATE()
+		)
+
+		INSERT INTO UserDetails
+		(
+			EmpName
+			,UserName
+			,PassWord
+			,SecuQues
+			,SecuAns
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			@UserName
+			,@UserName
+			,@Password
+			,@SecurityQues
+			,@SecurityAns
+			,@BranchName
+			,''True''
+			,@UserID
+			,GETDATE()
+		)
+
+	END
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[AutoGenenationID]
+(
+	 @CompanyID		INTEGER
+	,@IDType		VARCHAR(10)
+	,@BranchName	VARCHAR(50)
+)
+AS
+BEGIN
+
+DECLARE	@AutoID	INTEGER 
+DECLARE	@TempID	VARCHAR (50)
+DECLARE @ID INT
+
+SET @ID=(SELECT ID FROM Autogeneration WHERE BranchName=@BranchName)
+
+ 	IF (@IDType = ''BDLRNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(BookDetails_LRNo,0) FROM Autogeneration WHERE ID = @ID
+	END
+	ELSE IF (@IDType = ''LSlipNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(LorryAcSlip_SlipNo,0) FROM Autogeneration WHERE ID = @ID
+	END
+	ELSE IF (@IDType = ''DSMRNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(DeliverySlip_MRNo,0) FROM Autogeneration WHERE ID = @ID
+	END
+	ELSE IF (@IDType = ''RBDLRNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(ReceivedBookDetails_LRNo,0) FROM Autogeneration WHERE ID = @ID
+	END
+	ELSE IF (@IDType = ''CHNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(LorryChallan_ChallanNo,0) FROM Autogeneration WHERE ID = @ID
+	END
+	ELSE IF (@IDType = ''DSNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(DeliveryStatement_No,0) FROM Autogeneration WHERE ID = @ID
+	END
+	ELSE IF (@IDType = ''DBNo'')
+	BEGIN
+		SELECT @AutoID = ISNULL(DayBook_No,0) FROM Autogeneration WHERE ID = @ID
+	END
+
+	SET @AutoID = @AutoID + 1
+	SET @TempID = CONVERT(VARCHAR(20),@AutoID)
+	SELECT @TempID 
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE  PROCEDURE [dbo].[Login_Chk] 
+(
+@BranchName varchar(50),
+@UserName varchar(25),
+@Password varchar(25)
+)
+AS
+BEGIN
+	if exists
+	(
+	select ''*'' from UserDetails where
+	BranchName=@BranchName and
+	UserName=@UserName and Password=@Password
+	COLLATE SQL_Latin1_General_CP1_CS_AS
+	and Active=''True''
+	)
+	begin
+	select ''1''
+	end
+	else
+	begin
+	select ''0''
+	end
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[ForgotPwd_Chk]
+(
+@BranchName varchar(50),
+@SecuQues int,
+@SecuAns varchar(50)
+)
+AS
+BEGIN
+	IF EXISTS 
+	(
+	SELECT * FROM UserDetails
+	WHERE
+	BranchName=@BranchName AND
+	SecuQues=@SecuQues AND
+	SecuAns=@SecuAns	AND
+	Active=''True''
+	)
+	BEGIN
+		SELECT ''1''
+	END
+	ELSE
+	BEGIN
+		SELECT ''0''
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[ForgotPwd_U]
+(
+@BranchName varchar(50),
+@UserName varchar(10),
+@Password varchar(25)
+)
+AS
+BEGIN
+	UPDATE UserDetails SET
+	Password=@Password
+	WHERE
+	BranchName=@BranchName AND
+	UserName=@UserName
+	AND
+	Active=''True''
+	SELECT ''1''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[CheckLogin]
+(
+@BranchName varchar(50),
+@UserName varchar(50),
+@Password varchar(50)
+)
+AS
+BEGIN
+	IF EXISTS 
+	(
+	SELECT * FROM UserDetails
+	WHERE 
+	BranchName=@BranchName AND
+	UserName=@UserName
+	AND Password=@Password
+	AND Active=''True''
+	)
+	BEGIN
+		SELECT ''1''
+	END
+	ELSE
+	BEGIN
+		SELECT ''0''
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_OldBal]
+(
+@PartyName Varchar(35),
+@BranchName VARCHAR(50)
+)
+AS
+DECLARE @ContactId INT
+BEGIN
+SET @ContactId=(SELECT ID FROM AddressBook WHERE Name=@PartyName AND BranchName=@BranchName AND Active=''True'')
+
+SELECT
+	ID,
+	Balance,
+	CONVERT(VARCHAR(15),Date,103) as Date
+FROM
+	DailyBalance
+WHERE
+		ContactID=@ContactID
+	AND
+		BranchName=@BranchName
+	AND
+	Active=''True'' AND DeliveryID IS NULL
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_Consignor_V]
+@Consignor VARCHAR(20),
+@BranchName VARCHAR(50)
+AS
+
+BEGIN
+	SELECT
+		AddrB.ID
+		,AddrI.Address
+		,AddrI.City
+		,AddrI.Pincode
+	FROM
+		AddressBook AddrB
+	JOIN
+		AddressInfo AddrI
+	ON
+		AddrB.AddressInfoID=AddrI.ID
+	WHERE
+		AddrB.Name=@Consignor
+	AND
+		AddrB.BranchName=@BranchName
+	AND
+		AddrI.BranchName=@BranchName
+	AND
+		AddrB.Active=''True''
+	AND
+		AddrI.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_Consignee_V]
+@Consignee VARCHAR(20)
+,@BranchName VARCHAR(50)
+AS
+
+BEGIN
+	SELECT
+		AddrB.ID
+		,AddrI.Address
+		,AddrI.City
+		,AddrI.Pincode
+	FROM
+		AddressBook AddrB
+	JOIN
+		AddressInfo AddrI
+	ON
+		AddrB.AddressInfoID=AddrI.ID
+	WHERE
+		AddrB.Name=@Consignee
+	AND
+		AddrB.BranchName=@BranchName
+	AND
+		AddrI.BranchName=@BranchName
+	AND
+		AddrB.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[LorryChallen_CustRemarks_V]
+@Cust VARCHAR(20),
+@BranchName VARCHAR(50)
+AS
+
+BEGIN
+	SELECT
+		AddrB.Mob1
+		,AddrB.Mob2
+	FROM
+		AddressBook AddrB
+	WHERE
+		AddrB.Name=@Cust
+	AND
+		BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[AddressBook_AgentCode_Check]
+(
+@AgentCode Varchar(20),
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT AgentCode FROM AddressBook WHERE BranchName=@BranchName AND AgentCode=@AgentCode AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[AddressBook_I]
+(
+			@AgentCode VARCHAR(50)		 
+			,@Address VARCHAR(50)		   
+			,@Category VARCHAR(50)		   
+			,@PinCode INT
+			,@City VARCHAR(20)
+			,@Name VARCHAR(50)   
+			,@SurName VARCHAR(20) 
+			,@GroupName VARCHAR(25)
+			,@GroupID  INT       
+			,@PhonePrime varchar(20)
+			,@PhoneSecondary varchar(20)
+			,@Mob1 VARCHAR(15)
+			,@Mob2 VARCHAR(15)
+			,@EmailPrime varchar(40)
+			,@EmailSecondary varchar(40)
+			,@Website varchar(50)
+			,@Fax varchar(30)
+			,@TINNo varchar(30)
+			,@CSTNo varchar(20)
+			,@Areacode varchar(20) 
+			,@UserID varchar(25)
+			,@BranchName varchar(50)
+)
+AS
+BEGIN
+DECLARE @AddressInfoID int
+IF NOT EXISTS(SELECT Name FROM AddressBook WHERE Name=@Name AND BranchName=@BranchName)
+BEGIN
+IF(@PinCode != 0)
+	BEGIN
+		INSERT INTO AddressInfo
+		(
+					Address 
+				    ,PinCode 
+				    ,City 
+					,BranchName
+				    ,CreatedBy
+				    ,CreatedDate
+				    ,Active
+		)
+		VALUES
+		(
+					Upper(@Address) 
+					,@PinCode 
+					,Upper(@City)
+					,@BranchName 
+					,@UserID
+					,GETDATE()
+					,''True''
+		)
+	END
+	ELSE
+	BEGIN
+		INSERT INTO AddressInfo
+		(
+					Address 
+					,City
+					,BranchName
+					,CreatedBy
+					,CreatedDate
+					,Active
+		)
+		VALUES
+		(
+					Upper(@Address) 
+					,Upper(@City) 
+					,@BranchName
+					,@UserID
+					,GETDATE()
+					,''True''
+		)
+	END
+END
+SET @AddressInfoID =SCOPE_IDENTITY()
+SELECT @AddressInfoID
+BEGIN
+	INSERT INTO AddressBook
+					
+		   (
+            Name
+			,SurName
+			,GroupName
+			,AgentCode
+            ,AddressInfoID
+			,Types
+            ,PhonePrime
+            ,PhoneSecondary
+            ,EmailPrime
+            ,EmailSecondary
+			,Mob1
+			,Mob2
+            ,Website
+            ,Fax
+            ,TINNo
+            ,CSTNo
+            ,Areacode
+			,BranchName
+		    ,CreatedBy         
+		    ,CreatedDate           
+            ,Active
+) 
+	VALUES
+(
+           Upper(@Name)
+		   ,Upper(@SurName)
+		   ,@GroupName
+		   ,@AgentCode
+           ,@AddressInfoID
+		   ,@Category
+           ,@PhonePrime
+           ,@PhoneSecondary
+		   ,Upper(@EmailPrime)
+           ,Upper(@EmailSecondary)
+		   ,@Mob1
+ 		   ,@Mob2          
+           ,Upper(@Website)
+           ,@Fax
+           ,@TINNo
+           ,@CSTNo
+           ,@Areacode
+		   ,@BranchName
+           ,@UserID
+		   ,GETDATE()
+		   ,''True''
+) 
+END
+
+BEGIN
+	DECLARE @CompID VARCHAR(20)
+--	DECLARE @GroupID INT
+	SET @CompID=(SELECT Top 1(ID) FROM Chennai_Acc.dbo.Company)
+--	IF(@Category=''Customer'')
+--	SET @GroupID=(SELECT ID FROM Chennai_Acc.dbo.[Group] WHERE ID=''30'')
+--	ELSE IF(@Category=''Agent'' or @Category=''Others'') 
+--	BEGIN
+--	SET @GroupID=(SELECT ID FROM Chennai_Acc.dbo.[Group] WHERE ID=''14'')
+--	END
+	
+	INSERT INTO Chennai_Acc.dbo.Accounts
+	(
+		CompanyID
+		,CreatedBy
+		,Name
+		,Status
+		,Types
+		,Address
+		,Pincode
+		,City
+		,BranchName
+		,StateID
+		,GroupId
+		,IsHiddenUser
+	)
+	VALUES
+	(
+		@CompID
+		,@UserID
+		,Upper(@Name)
+		,1
+		,@Category
+		,@Address
+		,@Pincode
+		,@City
+		,@BranchName
+		,''1''
+		,@GroupID
+		,0
+	)
+END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[AddressBook_U]
+(
+			@ContactID INT
+			,@AccID INT
+            ,@AddressID int		
+            ,@Category VARCHAR(20)		
+            ,@Address VARCHAR(50)
+		    ,@PinCode INT
+		    ,@City VARCHAR(20)
+            ,@Name varchar(30) 
+			,@SurName varchar(30) 
+			,@GroupName varchar(30)   
+			,@GroupID INT   
+			,@AgentCode varchar(30)      
+            ,@PhonePrime varchar(20)
+            ,@PhoneSecondary varchar(20)
+			,@Mob1 VARCHAR(15)
+			,@Mob2 VARCHAR(15)
+            ,@EmailPrime varchar(40)
+            ,@EmailSecondary varchar(40)
+            ,@Website varchar(50)
+            ,@Fax varchar(30)
+            ,@TINNo varchar(30)
+            ,@CSTNo varchar(20)
+            ,@Areacode varchar(20)
+			,@BranchName varchar(50)
+		    ,@UserID varchar(25)
+)
+AS
+BEGIN
+IF EXISTS (SELECT ''*'' FROM AddressInfo WHERE BranchName=@BranchName AND ID=@AddressID AND Active=''True'')
+BEGIN	
+if(@PinCode != 0)
+BEGIN
+UPDATE AddressInfo
+SET
+			Address=Upper(@Address) 
+		   ,PinCode=@PinCode
+		   ,City=Upper(@City)
+		   ,BranchName=@BranchName
+		   ,Active=''True''
+		   ,UpdatedBy=@UserID
+		   ,UpdatedDate=GETDATE()	
+WHERE 
+			ID=@AddressID AND Active=''True''    
+END
+ELSE
+BEGIN
+UPDATE AddressInfo
+SET
+			Address=Upper(@Address) 
+		   ,City=Upper(@City)
+		   ,BranchName=@BranchName
+		   ,Active=''True''
+		   ,UpdatedBy=@UserID
+		   ,UpdatedDate=GETDATE()	
+WHERE 
+			ID=@AddressID AND Active=''True'' 
+END
+END
+BEGIN
+IF EXISTS (SELECT ''*'' FROM AddressBook WHERE BranchName=@BranchName AND ID=@ContactID AND Active=''True'')
+BEGIN
+	UPDATE AddressBook
+	SET				
+            Name=upper(@Name)
+			,SurName=upper(@SurName)
+			,AgentCode=@AgentCode
+			,Types=@Category
+			,GroupName=@GroupName
+		    ,PhonePrime=@PhonePrime
+            ,PhoneSecondary=@PhoneSecondary
+			,Mob1=@Mob1
+			,Mob2=@Mob2
+            ,EmailPrime=Upper(@EmailPrime)
+            ,EmailSecondary=Upper(@EmailSecondary)
+            ,Website=Upper(@Website)
+            ,Fax=@Fax
+            ,TINNo=@TINNo
+            ,CSTNo=@CSTNo
+            ,Areacode=@Areacode
+			,BranchName=@BranchName
+		    ,Active=''True''
+		    ,UpdatedBy=@UserID
+		    ,UpdateDate=GETDATE()	
+	WHERE
+			ID=@ContactID AND Active=''True''
+END	
+
+BEGIN
+	DECLARE @CompID VARCHAR(20)
+	
+--	SET @CompID=(SELECT Top 1(ID) FROM USS_Project.dbo.Company)
+SET @CompID=(SELECT Top 1(ID) FROM Chennai_Acc.dbo.Company)
+--	IF(@Category=''Agent'' or @Category=''Customer'')
+--	SET @GroupID=(SELECT ID FROM USS_Project.dbo.[Group] WHERE ID=''30'')
+--	ELSE 
+--	BEGIN
+--	SET @GroupID=(SELECT ID FROM USS_Project.dbo.[Group] WHERE ID=''14'')
+--	END
+	
+	UPDATE Chennai_Acc.dbo.Accounts
+	SET
+		CompanyID = @CompID
+		,ModifyAt = GETDATE()
+		,ModifyBy = @UserID
+		,Name = Upper(@Name)
+		,Status = 1
+		,Address = @Address
+		,Pincode = @Pincode
+		,City = @City
+		,BranchName=@BranchName
+		,StateID = ''1''
+		,GroupId = @GroupID
+		,IsHiddenUser = 1
+	WHERE
+		BranchName=@BranchName AND ID=@AccID
+
+END
+
+END	
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[AddressBook_D]
+(
+@ID int,
+@UserID varchar(25),
+@AddressID int,
+@BranchName varchar(50)
+)
+AS
+
+DECLARE @CustID VARCHAR(100)
+SET @CustID=(SELECT Name FROM AddressBook WHERE BranchName=@BranchName AND ID=@ID AND Active=''True'')
+BEGIN
+	IF NOT EXISTS(SELECT CustomerName FROM DeliverySlip WHERE BranchName=@BranchName AND  CustomerName=@CustID AND Active=''True'')
+	BEGIN
+		IF NOT EXISTS(SELECT ID FROM DailyBalance WHERE ContactID=@AddressID AND Active=''True'')
+	BEGIN	
+		UPDATE AddressBook
+		SET
+			BranchName=@BranchName,
+			Active=''False'',
+			UpdatedBy=@UserID,
+			UpdateDate=GETDATE()
+		WHERE
+				ID=@ID AND Active=''True''
+
+		UPDATE  AddressInfo
+		SET
+			BranchName=@BranchName,
+			Active=''False'',
+			UpdatedBy=@UserID,
+			UpdatedDate=GETDATE()
+		WHERE
+			BranchName=@BranchName AND ID=@AddressID AND Active=''True''
+
+
+		UPDATE Chennai_Acc.dbo.Accounts
+		SET
+			BranchName=@BranchName,
+			Active=''False''
+		WHERE
+			BranchName=@BranchName AND ID=@ID AND Active=''True''
+		END
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[AddressBook_S]
+(
+@Name  VARCHAR(30),
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+  IF EXISTS(SELECT * FROM AddressBook WHERE BranchName=@BranchName AND Name=@Name AND Active=''True'')
+	BEGIN
+		SELECT 
+
+			AB.ID,
+			A.ID as AccountsID,
+			AB.SurName,
+			AB.GroupName,
+			AB.AgentCode,
+			AB.AddressInfoID,
+			AB.Types,
+			AB.PhonePrime,
+			AB.PhoneSecondary,
+			AB.Mob1,
+			AB.Mob2,
+			AB.EmailPrime,
+			AB.EmailSecondary,
+			AB.Website,
+			AB.Fax,
+			AB.TINNo,
+			AB.CSTNo,
+			AB.Areacode,
+			AD.Address,
+			AD.City,
+			AD.PinCode
+			
+	FROM
+			AddressBook (NOLOCK)AB INNER JOIN AddressInfo (NOLOCK) AD ON AB.AddressInfoID=AD.ID JOIN Chennai_Acc.dbo.Accounts A ON a.[Name]=AB.[Name]
+	WHERE
+			AB.BranchName=@BranchName
+	AND	
+			AD.BranchName=@BranchName
+	AND
+			AB.[Name]=@Name AND AB.Active=''True''
+
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DayBook_U]
+(
+@DayBookID INT
+,@Date DATETIME
+,@AccountName VARCHAR(50)
+,@Types VARCHAR(50)
+,@Particulars VARCHAR(200)
+,@Amount DECIMAL(18,2)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+)
+AS
+
+	DECLARE @AccID INT
+	DECLARE @CreditBalance DECIMAL
+	DECLARE @Total DECIMAL(18,2)
+	DECLARE @OldAmt DECIMAL
+	DECLARE @ContactID INT
+	DECLARE @Amt DECIMAL
+
+	SET @ContactID=(SELECT ID FROM AddressBook WHERE [Name]=@AccountName AND BranchName=@BranchName AND Active=''True'')
+	SET @AccID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=@AccountName AND BranchName=@BranchName AND Status=''True'')
+
+SET @OldAmt=(SELECT Amount FROM Chennai_Acc.dbo.DebitsCredits WHERE ID=@DayBookID AND BranchName=@BranchName)
+--SET @CreditBalance=(SELECT CreditBalance FROM CreditorsBalance WHERE ContactID=@ContactID AND Active=''True'')
+--		IF(@OldAmt>@Amount)
+--			BEGIN
+--				SET	@Amt=@OldAmt-@Amount
+--				SET	@Total=@CreditBalance-@Amt
+--			END
+--		ELSE
+--			BEGIN
+--				SET @Amt=@Amount-@OldAmt
+--				SET @Total=@CreditBalance+@Amt
+--			END
+
+BEGIN
+	UPDATE
+		Chennai_Acc.dbo.DebitsCredits
+	SET
+		AccountID=@AccID
+		,Date=@Date
+		,[Type]=@Types
+		,Particular=@Particulars
+		,Amount=@Amount
+		,ModifyBy=@UserID
+		,ModifyAt=GETDATE()
+		,RelationAccount=@AccountName
+	WHERE
+		ID=@DayBookID
+	AND
+		BranchName=@BranchName
+	AND
+		Status=''True''
+
+	UPDATE
+				CreditorsBalance
+		SET
+				CreditBalance=@Amount,
+				ContactID=@ContactID
+		WHERE
+				DayBookID=@DayBookID
+		AND 
+				BranchName=@BranchName
+		AND
+				Active=''True''
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Payments_TotalBal_I]
+(
+@Name Varchar(20),
+@Amount Decimal(18,2),
+@OldDate DATETIME,
+@BranchName VARCHAR(50),
+@UserID VARCHAR(20)
+)
+AS
+DECLARE @ContactID int
+DECLARE @TimeDate as datetime
+DECLARE @Time datetime
+    
+SET @Time=(SELECT
+CONVERT(VARCHAR(10),GETDATE(),108) AS ForTime)      
+SET @TimeDate=@OldDate+@Time
+
+
+BEGIN
+SET @ContactID=(SELECT ID FROM AddressBook WHERE [Name]=@Name AND BranchName=@BranchName AND Active=''True'')
+
+IF NOT EXISTS(SELECT ID FROM DailyBalance WHERE ContactID=@ContactID AND BranchName=@BranchName AND Active=''True'' AND DeliveryID IS NULL)
+	BEGIN
+		INSERT INTO
+			DailyBalance
+			(
+				ContactID
+				,Date
+				,Balance
+				,TotBalance
+				,BranchName
+				,Active
+				,CreatedBy
+				,CreatedDate
+			)
+		VALUES
+			(
+				@ContactID
+				,@TimeDate
+				,@Amount
+				,@Amount
+				,@BranchName
+				,''True''
+				,@UserID
+				,GETDATE()
+			)
+
+
+	UPDATE 
+		Chennai_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ItemCount+1
+	
+	DECLARE @EntryITCount INT
+	DECLARE @AccID INT
+	DECLARE @AccCashID INT
+	SET @AccID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=@Name AND BranchName=@BranchName)
+	SET @AccCashID=(SELECT ID FROM Chennai_Acc.dbo.Accounts WHERE [Name]=''Cash'' AND BranchName=@BranchName)	
+	SET @EntryITCount=(SELECT ItemCount FROM Chennai_Acc.dbo.Company_EntryItemCount WHERE BranchName=@BranchName)
+	
+	
+	BEGIN
+		INSERT INTO Chennai_Acc.dbo.DebitsCredits
+			(
+				Date
+				,AccountID
+				,Amount
+				,BranchName
+				,CreatedAt
+				,CreatedBy
+				,Type
+				,Status
+				,Particular
+				,RelationAccount
+				,EntryItemCount
+			)
+		   VALUES
+			(
+				@TimeDate
+				,@AccID
+				,@Amount
+				,@BranchName
+				,CONVERT(VARCHAR(12),GETDATE(),100)
+				,@UserID
+				,''Dr''
+				,1
+				,''OldBalance''
+				,@Name
+				,@EntryITCount
+			)
+	END
+END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROc [dbo].[AddressBook_V]
+(
+@Type Varchar(20),
+@BranchName VARCHAR(50)
+)
+As
+BEGIN
+	SELECT
+		 AB.Name,
+		 AB.SurName 
+	FROM 
+		 AddressBook AB 
+	join 
+		 AddressInfo AI 
+	on
+		 AB.AddressInfoID=AI.ID
+	WHERE 
+		AB.BranchName=@BranchName
+	AND
+		AI.BranchName=@BranchName
+	AND
+		 Types=@Type
+	AND
+		 AB.Active=''True''
+	AND	
+		 AI.Active=''True''
+		
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[AgentName_Details]
+(
+@AgentName Varchar(25)
+,@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	
+	SELECT
+		ID
+		
+	FROM
+		AddressBook 
+--	JOIN
+--		AddressInfo AddrI
+--	ON
+--		AddrB.AddressInfoID=AddrI.ID
+	WHERE
+		Name=@AgentName
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+end'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[OwnerName_Details]
+(
+@OwnerName Varchar(25)
+,@Branchname varchar(50)
+)
+AS
+BEGIN
+	
+	SELECT
+		AddrB.ID
+		,AddrI.Address
+		,AddrI.City
+		,AddrI.Pincode
+	FROM
+		AddressBook AddrB
+	JOIN
+		AddressInfo AddrI
+	ON
+		AddrB.AddressInfoID=AddrI.ID
+	WHERE
+		AddrB.Name=@OwnerName
+	AND
+		AddrB.BranchName=@BranchName
+	AND
+		AddrB.Active=''True''
+--	AND
+--		Types=''TRANSPORT''
+end'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_Agent_V]
+@Agent VARCHAR(20)
+,@BranchName VARCHAR(50)
+AS
+
+BEGIN
+	SELECT
+		AddrB.ID
+	FROM
+		AddressBook AddrB
+	JOIN
+		AddressInfo AddrI
+	ON
+		AddrB.AddressInfoID=AddrI.ID
+	WHERE
+		AddrB.Name=@Agent
+	AND
+		AddrB.BranchName=@BranchName
+	AND
+		AddrI.BranchName=@BranchName
+	AND
+		AddrB.Active=''True''
+	AND
+		AddrI.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Employee_D]
+(
+@ID INT,
+@UserID VARCHAR(10),
+@BranchName VARCHAR(50),
+@AddID INT
+)
+AS
+BEGIN
+	UPDATE 
+		Employee 
+	SET
+		Active=''False'',
+		UpdatedBy=@UserID,
+		UpdatedDate=GetDate()
+	WHERE 
+		ID=@ID AND BranchName=@BranchName
+	AND 
+		Active=''True''
+
+	UPDATE
+		AddressInfo 
+	SET
+		Active=''False'',
+		UpdatedBy=@UserID,
+		UpdatedDate=GetDate()
+	WHERE 
+		ID=@AddID AND BranchName=@BranchName
+	AND 
+		Active=''True''
+SELECT ''1''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Employee_U]
+(
+@EmpCode VARCHAR(10),
+@EmpName VARCHAR(30),
+@Designation VARCHAR(50),
+@Address VARCHAR(50),
+@City VARCHAR(20),
+@PinCode INT,
+@FatherName VARCHAR(50),
+@MotherName VARCHAR(50),
+@Gender INT,
+@DOB DATETIME,
+@Phone VARCHAR(20),
+@Mobile VARCHAR(20),
+@Email VARCHAR(100),
+@Qualification VARCHAR(15),
+@DOJ DATETIME,
+@UserID VARCHAR(25),
+@BranchName VARCHAR(50),
+@ID INT,
+@AddID INT
+)
+AS
+BEGIN
+	BEGIN
+		UPDATE 
+			Employee 
+		SET
+			EmpCode=@EmpCode,
+			EmpName=Upper(@EmpName),
+			Active=''True'',
+			UpdatedBy=@UserID,
+			UpdatedDate=GetDate()
+		WHERE 
+			ID=@ID AND BranchName=@BranchName
+	
+		UPDATE 
+			AddressInfo 
+		SET
+			Address=Upper(@Address),
+			City=Upper(@City),
+			PinCode=@PinCode,
+			Active=''True'',
+			UpdatedBy=@UserID,
+			UpdatedDate=GetDate()
+		WHERE 
+			ID=@AddID AND BranchName=@BranchName
+
+		UPDATE 
+			EmployeeInfo 
+		SET
+			FatherName=Upper(@FatherName),
+			MotherName=Upper(@MotherName),
+			Gender=@Gender,
+			DOB=@DOB,
+			Phone=@Phone,
+			Mobile=@Mobile,
+			Email=Upper(@Email),
+			Qualification=Upper(@Qualification),
+			Designation=Upper(@Designation),
+			DOJ=@DOJ
+		WHERE 
+			EmployeeID=@ID AND BranchName=@BranchName
+	END
+SELECT ''1''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Employee_S]
+(
+@EmpCode VARCHAR(10),
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	IF EXISTS (SELECT * FROM Employee WHERE EmpCode=@EmpCode AND BranchName=@BranchName and Active=''True'')
+	BEGIN
+		SELECT
+			E.ID EmpID,
+			E.EmpName,
+			AI.ID AddID,
+			AI.Address,
+			AI.City,
+			AI.PinCode,
+			EI.FatherName,
+			EI.MotherName,
+			EI.Gender,
+			CONVERT(VARCHAR(10), EI.DOB,103)DOB,
+			EI.Phone,
+			EI.Mobile,
+			EI.Email,
+			EI.Qualification,
+			EI.Designation,
+			CONVERT(VARCHAR(10), EI.DOJ,103)DOJ
+		FROM 
+			Employee(NOlock)E 
+		JOIN 
+			AddressInfo(Nolock)AI 
+		ON 
+			E.AddressInfoID=AI.ID
+		JOIN
+			EmployeeInfo(Nolock)EI 
+		ON 
+			E.ID=EI.EmployeeID
+		WHERE 
+			EmpCode=@EmpCode 
+		AND
+			E.BranchName=@BranchName
+		AND
+			AI.BranchName=@BranchName
+		AND
+			EI.BranchName=@BranchName
+		AND 
+			E.Active=''True''
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[UserBranches_Load]
+as
+
+BEGIN
+	SELECT 
+		UPPER(City) 
+	FROM 
+		Company COM
+	JOIN 
+		AddressInfo AI 
+	ON 
+		COM.AddressInfoID=AI.ID
+	WHERE 
+		COM.Active=''True''
+	AND
+		AI.Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Company_D]
+@ID INT,
+@UserID VARCHAR(30),
+@BranchName VARCHAR(50),
+@AddID INT
+AS
+BEGIN
+
+	 UPDATE Company
+     SET
+         Active=''False'',
+        UpdatedBy=@UserID,
+        UpdatedDate=GETDATE()
+    WHERE ID=@ID AND BranchName=@BranchName AND Active=''True''
+	
+	UPDATE AddressInfo
+     SET
+         Active=''False'',
+        UpdatedBy=@UserID,
+        UpdatedDate=GETDATE()
+    WHERE ID=@AddID AND BranchName=@BranchName AND Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Company_S]
+(
+ @CompanyName VARCHAR(45),
+ @BranchName VARCHAR(50)
+)
+AS
+BEGIN
+      SET NOCOUNT ON;
+        SELECT    
+				CN.ID,
+                CN.CompanyName,
+                CN.PhonePrime,
+                CN.PhoneSecondary,
+				CN.Mob1,
+				CN.Mob2,
+                CN.EmailPrime,
+                CN.EmailSecondary,
+                CN.Website,
+                CN.Fax,
+                CN.TINNo,
+                CN.CSTNo,
+                CN.Areacode,
+                AI.ID AS AddID,
+				AI.Address,
+                AI.City,
+                AI.Pincode
+	    FROM 
+             Company (NOLOCK) CN
+        LEFT OUTER JOIN 
+			AddressInfo AI  (NOLOCK) ON AI.ID=CN.AddressInfoID 
+        WHERE
+             CN.Active = 1
+        AND 
+			CN.CompanyName=@CompanyName
+		AND
+			CN.BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Company_I]
+(
+@CompanyName VARCHAR(40)=NULL,
+@Address VARCHAR(75)=NULL,
+@City VARCHAR(20)=NULL,
+@Pincode VARCHAR(15)=NULL,
+@PhonePrime VARCHAR(15)=NULL,
+@Mob1 VARCHAR(15)=NULL,
+@Mob2 VARCHAR(15)=NULL,
+@PhoneSecondary VARCHAR(15)=NULL,
+@EmailPrime VARCHAR(50)=NULL,
+@EmailSecondary VARCHAR(50)=NULL,
+@Website VARCHAR(20)=NULL,
+@Fax VARCHAR(25)=NULL,
+@TINNo VARCHAR(25)=NULL,
+@CSTNo VARCHAR(25)=NULL,
+@AreaCode VARCHAR(25)=NULL,
+@BranchName VARCHAR(50)=NULL,
+@UserID VARCHAR(30)=NULL
+)
+AS
+BEGIN
+DECLARE @AddressInfoID INT
+if EXISTS( SELECT * FROM Company WHERE CompanyName=@CompanyName AND BranchName=@BranchName)
+BEGIN
+      SELECT ''0''
+      RETURN 
+	
+END
+SET NOCOUNT ON
+	BEGIN TRY
+	   BEGIN TRANSACTION
+        if(@Pincode != 0)
+		begin
+		INSERT INTO AddressInfo
+               (
+                Address,
+                City,
+                Pincode,
+				BranchName,
+				Active,
+                CreatedBy,
+                CreatedDate            
+               )
+              VALUES
+               (
+                 @Address,
+                 @City,
+                 @Pincode,
+				 @BranchName,
+				''True'',
+                 @UserID,
+                 getdate()
+               )
+		end
+		else
+		begin
+		INSERT INTO AddressInfo
+               (
+                Address,
+                City,
+				BranchName,
+				Active,
+                CreatedBy,
+                CreatedDate            
+               )
+              VALUES
+               (
+                 @Address,
+                 @City,
+				 @BranchName,
+				''True'',
+                 @UserID,
+                 getdate()
+               )
+		end
+        SELECT @AddressInfoID = SCOPE_IDENTITY()
+           
+        INSERT INTO Company
+                (
+                CompanyName,
+                AddressInfoID,
+                PhonePrime,
+                PhoneSecondary,
+                EmailPrime,
+                EmailSecondary,
+                Website,
+                Fax,
+                TINNo,
+                CSTNo,
+                AreaCode,
+				BranchName,
+                Active,
+                CreatedBy,
+                CreatedDate
+               )
+          VALUES
+                (
+                 @CompanyName,
+                 @AddressInfoID,
+                 @PhonePrime,
+                 @PhoneSecondary,
+                 @EmailPrime,
+                 @EmailSecondary,
+                 @Website,
+                 @Fax,
+                 @TINNo,
+                 @CSTNo,
+                 @AreaCode,
+				 @BranchName,
+                 ''True'',
+                 @UserID,
+                 getdate()
+               )
+COMMIT TRANSACTION
+		 SELECT ''1''
+	END TRY
+	BEGIN CATCH
+	  IF @@TRANCOUNT > 0
+		 ROLLBACK
+		 SELECT 0
+		 SET NOCOUNT OFF;
+
+	  DECLARE @ErrMsg nvarchar(4000), @ErrSeverity int
+	  SELECT @ErrMsg = ERROR_MESSAGE(),
+			 @ErrSeverity = ERROR_SEVERITY()
+
+	  RAISERROR(@ErrMsg, @ErrSeverity, 1)
+	END CATCH       
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[Company_SS]
+@BranchName VARCHAR(50)
+AS
+BEGIN
+	SET NOCOUNT ON;
+        SELECT    COM.ID,
+                  COM.CompanyName,
+                  COM.PhonePrime,
+                  COM.PhoneSecondary,
+				  COM.Mob1,
+				  COM.Mob2,
+                  COM.EmailPrime,
+                  COM.EmailSecondary,
+                  COM.Website,
+                  COM.Fax,
+                  COM.TINNo,
+                  COM.CSTNo,
+                  COM.Areacode,
+				  AI.ID AddID,
+                  AI.Address,
+                  AI.City,
+                  AI.Pincode
+	    FROM 
+             Company (NOLOCK) COM
+             LEFT OUTER JOIN AddressInfo AI  (NOLOCK) ON AI.ID=COM.AddressInfoID 
+        WHERE
+			 COM.BranchName=@BranchName
+		AND
+			 AI.BranchName=@BranchName
+		AND
+             COM.Active = 1
+             
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Company_U]
+(
+	@ID INT,
+	@AddID INT,
+	@CompanyName VARCHAR(40),
+	@Address VARCHAR(75),
+	@City VARCHAR(20),
+	@Pincode INT,
+	@PhonePrime VARCHAR(15),
+	@PhoneSecondary VARCHAR(15),
+	@Mob1 VARCHAR(15),
+	@Mob2 VARCHAR(15),
+	@EmailPrime VARCHAR(50),
+	@EmailSecondary VARCHAR(50),
+	@Website VARCHAR(30),
+	@Fax VARCHAR(25),
+	@TINNo VARCHAR(25),
+	@CSTNo VARCHAR(25),
+	@AreaCode VARCHAR(10),
+	@BranchName VARCHAR(50),
+	@UserID VARCHAR(30)
+)
+AS
+BEGIN
+SET NOCOUNT ON
+	BEGIN TRY
+	   BEGIN TRANSACTION
+         UPDATE Company
+         SET
+	            CompanyName=@CompanyName,                
+                PhonePrime=@PhonePrime,
+                PhoneSecondary=@PhoneSecondary,
+				Mob1=@Mob1,
+				Mob2=@Mob2,
+                EmailPrime=@EmailPrime,
+                EmailSecondary=@EmailSecondary,
+                Website=@Website,
+                Fax=@Fax,
+                TINNo=@TINNo,
+                CSTNo=@CSTNo,
+				AreaCode=@AreaCode,
+                UpdatedBy=@UserID,
+                UpdatedDate=GETDATE()
+          WHERE
+                ID=@ID AND BranchName=@BranchName
+         
+		 IF(@Pincode != 0)
+		 BEGIN
+		 UPDATE 
+                 AddressInfo
+         SET
+                Address=@Address,
+                City=@City,
+                Pincode=@Pincode
+          WHERE ID=@AddID AND BranchName=@BranchName AND Active=''True''
+		end
+		else
+		begin
+		UPDATE 
+                 AddressInfo
+         SET
+                Address=@Address,
+                City=@City
+          WHERE ID=@AddID AND BranchName=@BranchName AND Active=''True''
+		end
+   COMMIT TRANSACTION
+		 SELECT ''1''
+	END TRY
+	BEGIN CATCH
+	  IF @@TRANCOUNT > 0
+		 ROLLBACK
+		 SELECT 0
+		 SET NOCOUNT OFF;
+	  DECLARE @ErrMsg nvarchar(4000), @ErrSeverity int
+	  SELECT @ErrMsg = ERROR_MESSAGE(),
+			 @ErrSeverity = ERROR_SEVERITY()
+
+	  RAISERROR(@ErrMsg, @ErrSeverity, 1)
+	END CATCH       
+
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Bank_I]
+(	    
+		    @BankCode VARCHAR(30)
+		   ,@IFSCode VARCHAR(30)
+		   ,@Address VARCHAR(50)
+		   ,@City VARCHAR(20)
+		   ,@PinCode INT
+           ,@BankName VARCHAR(30)
+           ,@AccType VARCHAR(30)
+           ,@AccName VARCHAR(30)
+           ,@BranchName VARCHAR(30) 
+		   ,@AccNo VARCHAR(30) 
+		   ,@DeepakBranchName VARCHAR(50) 
+		   ,@UserID VARCHAR(25)
+)
+AS
+
+
+IF NOT EXISTS(SELECT * FROM BankDetails WHERE AccountNo=@AccNo AND DeepakBranchName=@DeepakBranchName AND Active=''True'')
+
+BEGIN
+DECLARE @AddressInfoID AS INT
+	   BEGIN
+			INSERT INTO AddressInfo
+				(	
+				Address,	
+				City,
+				PinCode,		
+				BranchName,
+				CreatedBy,
+				CreatedDate,
+				Active
+				)
+			VALUES
+				(
+				Upper(@Address),
+				Upper(@City),
+				@PinCode,
+				@DeepakBranchName,
+				@UserID,
+				GETDATE(),
+				''True''
+				)
+			SET @AddressInfoID = SCOPE_IDENTITY()
+			SELECT @AddressInfoID
+	  END
+	   BEGIN
+			INSERT INTO BankDetails
+				(				
+				AddressInfoID,
+				BankCode,
+				AccountType,
+				AccountNo,
+				AccountName,
+				IFSCode,
+				BankName,
+				BranchName,
+				DeepakBranchName,
+				CreatedBy,
+				CreatedDate,
+				Active
+				)
+			VALUES
+				(
+				@AddressInfoID,
+				@BankCode,
+				@AccType,
+				@AccNo,
+				@AccName,
+				@IFSCode,
+				Upper(@BankName),
+				Upper(@BranchName),
+				@DeepakBranchName,
+				@UserID,
+				GETDATE(),
+				''True''
+				)
+	  END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Employee_I]
+(
+@EmpCode varchar(10),
+@EmpName varchar(30),
+@Designation varchar(50),
+@Address varchar(50),
+@City varchar(20),
+@PinCode int,
+@FatherName varchar(50),
+@MotherName varchar(50),
+@Gender int,
+@DOB datetime,
+@Phone varchar(20),
+@Mobile varchar(20),
+@Email varchar(100),
+@Qualification varchar(15),
+@DOJ datetime,
+@BranchName varchar(50),
+@UserID varchar(30)
+)
+AS
+BEGIN
+	declare @AddressInfoID int
+	declare @EmployeeID int
+
+INSERT into AddressInfo
+	(
+	Address,
+	City,
+	PinCode,
+	BranchName,
+	Active,
+	CreatedBy,
+	CreatedDate
+	)
+	VALUES
+	(
+	Upper(@Address),
+	Upper(@City),
+	@PinCode,
+	@BranchName,
+	''True'',
+	@UserID,
+	Getdate()
+	)
+SET @AddressInfoID = scope_identity()
+SELECT @AddressInfoID
+	
+	INSERT INTO Employee
+	(
+	EmpCode,
+	EmpName,
+	AddressInfoID,
+	BranchName,
+	Active,
+	CreatedBy,
+	CreatedDate
+	)
+	VALUES
+	(
+	@EmpCode,
+	Upper(@EmpName),
+	@AddressInfoID,
+	@BranchName,
+	''True'',
+	@UserID,
+	Getdate()
+	)
+	SET @EmployeeID = scope_identity()
+	SELECT @EmployeeID
+
+	INSERT INTO EmployeeInfo
+	(
+	EmployeeID,
+	FatherName,
+	MotherName,
+	Gender,
+	DOB,
+	Phone,
+	Mobile,
+	Email,
+	Qualification,
+	Designation,
+	DOJ,
+	BranchName,
+	Active,
+	CreatedBy,
+	CreatedDate
+	)
+	VALUES
+	(
+	 @EmployeeID,
+	Upper(@FatherName),
+	Upper(@MotherName),
+	@Gender,
+	@DOB,
+	@Phone,
+	@Mobile,
+	Upper(@Email),
+	Upper(@Qualification),
+	Upper(@Designation),
+	@DOJ,
+	@BranchName,
+	''True'',
+	@UserID,
+	Getdate()
+	)
+
+	SELECT ''1''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Bank_S]
+@DeepakBranchName VARCHAR(50)
+
+AS
+	  BEGIN
+		IF EXISTS(SELECT * FROM BankDetails(NOLOCK) WHERE Active=''True'')
+			BEGIN
+			SELECT 
+					BD.ID,
+					BD.AddressInfoID,
+					BD.IFSCode,
+					BD.AccountType,
+					BD.AccountNo,
+					BD.AccountName,
+					BD.BankCode,
+					BD.BankName,
+					BD.BranchName,
+					AD.Address,
+					AD.City,
+					AD.PinCode
+			FROM
+					BankDetails(NOLOCK)BD INNER JOIN AddressInfo(NOLOCK) AD ON BD.AddressInfoID=AD.ID 
+			WHERE
+				BD.DeepakBranchName=@DeepakBranchName AND AD.BranchName=@DeepakBranchName AND BD.Active=''True''
+			END
+	  END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Bank_U]
+(	    
+		@BankID INT
+		,@AddressID INT
+		,@Address VARCHAR(50)
+		,@City VARCHAR(20)
+		,@PinCode INT
+        ,@BankCode VARCHAR(30)
+		,@IFSCode VARCHAR(30)
+		,@BankName VARCHAR(30)
+        ,@BranchName VARCHAR(30)
+		,@AccType VARCHAR(30)
+		,@AccNo VARCHAR(30)
+		,@AccName VARCHAR(30)
+		,@DeepakBranchName VARCHAR(30)
+		,@UserID VARCHAR(25)         
+)
+AS
+BEGIN
+
+
+	IF EXISTS(SELECT ''*'' FROM BankDetails WHERE ID=@BankID AND DeepakBranchName=@DeepakBranchName AND Active=''True'') 
+	  BEGIN
+			UPDATE BankDetails
+			SET				
+				BankCode=@BankCode,
+				IFSCode=@IFSCode,
+				AccountType=@AccType,
+				AccountNo=@AccNo,
+				AccountName=@AccName,
+				BankName=Upper(@BankName),
+				BranchName=Upper(@BranchName),
+				DeepakBranchName=@DeepakBranchName,
+				Active=''True'',			
+				UpdatedBy=@UserID,
+				UpdatedDate=GETDATE()								
+			WHERE
+				ID=@BankID AND DeepakBranchName=@DeepakBranchName AND Active=''True''
+	  END
+IF EXISTS(SELECT ''*'' FROM AddressInfo WHERE ID=@AddressID AND BranchName=@DeepakBranchName AND Active=''True'')  
+	   BEGIN
+			UPDATE AddressInfo
+			SET		
+				Address=Upper(@Address),	
+				City=Upper(@City),
+				PinCode=@PinCode ,
+				BranchName=@DeepakBranchName,
+				Active=''True'',			
+				UpdatedBy=@UserID,
+				UpdatedDate=GETDATE()
+			WHERE				
+			    ID=@AddressID AND BranchName=@DeepakBranchName AND Active=''True''
+     END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Bank_D]
+(
+@ID int,
+@AddressID int,
+@DeepakBranchName VARCHAR(50),
+@UserID varchar(25)
+)
+AS
+BEGIN
+	UPDATE  BankDetails
+	SET
+		Active=''False'',
+		UpdatedBy=@UserID,
+		UpdatedDate=GETDATE()
+	WHERE
+		ID=@ID 
+	AND
+		DeepakBranchName=@DeepakBranchName
+	AND 
+		Active=''True''
+
+	UPDATE AddressInfo
+	SET
+		Active=''False'',
+		UpdatedBy=@UserID,
+		UpdatedDate=GETDATE()
+	WHERE
+		ID=@AddressID
+	AND
+		BranchName=@DeepakBranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[Company_Exists]
+@BranchName VARCHAR(50)
+AS
+BEGIN
+	DECLARE @ID INT
+	SET @ID=(SELECT ID FROM Company)
+	SELECT 
+		CompanyName 
+	FROM 
+		Company 
+	WHERE 
+		ID=@ID
+	AND
+		BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[ItemMaster_S]
+
+@BranchName VARCHAR(50)
+
+AS
+
+BEGIN
+	SELECT
+		ID,
+		ITEMNAME,
+		Rate
+	FROM
+		ItemMaster
+	WHERE
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROCEDURE [dbo].[ItemMaster_I]
+(
+@Item VARCHAR(35)=null
+,@Rate DECIMAL(18,2)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+)
+AS
+
+BEGIN
+IF NOT EXISTS (SELECT ItemName FROM ItemMaster WHERE ItemName=@Item AND BranchName=@BranchName AND Active=''True'')
+	
+	INSERT INTO ItemMaster
+		(
+		ItemName
+		,Rate
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+		)
+	VALUES
+		(
+		@Item
+		,@Rate
+		,@BranchName
+		,''TRUE''
+		,@UserID
+		,GETDATE()
+		)
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_ItemName_S]
+@BranchName	VARCHAR(50)
+as
+BEGIN
+	SELECT
+		ID
+		,ItemName
+	FROM
+		ItemMaster
+	WHERE
+		Branchname=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[ItemMaster_U]
+@ItemID INT
+,@Item VARCHAR(35)
+,@Rate DECIMAL(18,2)
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+
+AS
+
+BEGIN
+--IF NOT EXISTS (SELECT ItemName FROM ItemMaster WHERE ItemName=@Item AND Active=''True'')
+	
+	UPDATE
+		ItemMaster
+	SET
+		ItemName=@Item
+		,Rate=@Rate
+		,UpdatedBy=@UserID
+		,UpdatedDate=GETDATE()
+	WHERE
+		ID=@ItemID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[ItemMaster_D]
+@ItemID INT
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+
+AS
+
+BEGIN
+	UPDATE
+		ItemMaster
+	SET
+		Active=''False''
+	WHERE
+		ID=@ItemID
+	AND 
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[BookDetails_Rate_S]
+@ItemName	VARCHAR(100),
+@BranchName	VARCHAR(50)
+
+AS
+
+BEGIN
+	SELECT
+		ID
+		,Rate
+	FROM
+		ItemMaster
+	WHERE
+		ItemName=@ItemName
+	AND
+		Branchname=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[DayBook_D]
+(
+@DayBookID INT,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	UPDATE
+		Chennai_Acc.dbo.DebitsCredits
+	SET
+		Status=''False''
+	WHERE
+		ID=@DayBookID
+	AND
+		BranchName=@BranchName
+	AND
+		Status=''True''
+
+
+UPDATE
+		CreditorsBalance
+	SET
+		Active=''False''
+	WHERE
+		DayBookID=@DayBookID
+	AND
+		BranchName=@BranchName
+	AND
+		Active=''True''
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[CustomerMsg_I]
+(
+@MobileNo Varchar(15)
+,@Msg  Varchar(max)
+,@BranchName VARCHAR(50)
+,@UserID Varchar(15)
+)
+AS
+BEGIN
+	INSERT
+	INTO 
+		CustomerMessage
+		(
+		Date
+		,MobileNo
+		,[Message]
+		,BranchName
+		,CreatedBy
+		,CreatedDate
+		)
+		VALUES
+		(
+		Getdate()
+		,@MobileNo
+		,@Msg
+		,@BranchName
+		,@UserID
+		,Getdate()
+		)
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='CREATE PROC [dbo].[CustomerMsg_Report]
+(
+@FromDate datetime,
+@ToDate datetime,
+@BranchName VARCHAR(50)
+)
+AS
+BEGIN
+	SELECT
+		CONVERT(VARCHAR(15),Date,103) AS Date
+		,MobileNo
+		,[Message]
+	FROM
+		CustomerMessage
+	WHERE
+		Date
+	BETWEEN
+		@FromDate
+	AND
+		@ToDate
+	AND
+		BranchName=@BranchName
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+SET @SQLString='ALTER DATABASE '+@DBName+'
+SET ALLOW_SNAPSHOT_ISOLATION ON'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='ALTER DATABASE '+@DBName1+'
+SET ALLOW_SNAPSHOT_ISOLATION ON'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+-- Database1 Stored Procedure Ends--
+-- Database 1 Completed --
+
+
+
+
+=================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Murugan
+		CREATED DATE : 11-01-2012
+		DESCRIPTION : To  Insert New record to the LorryChallan Table 
+		UPDATEDDATE:25-01-12
+    ============================================================*/
+
+
+ALTER PROC [dbo].[LorryChallan_I]
+(
+@ChallanNo		INT,
+@StartFrom		Varchar(25),
+@EndTo			Varchar(25),
+@TruckNo		Varchar(20),
+@NameofDriver	Varchar(25),
+@TruckownerName	int,
+@AgentName		Varchar(25),
+@ChallanDate	Datetime,
+@ArrivalDate	Datetime,
+--@StoreNo		Int,
+@DriverPhoneNo	Varchar(15),
+@BranchName		Varchar(50),
+@UserID			Varchar(25)
+)
+AS
+
+DECLARE @LorryChallanID INT  
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+ 
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'IF NOT EXISTS(SELECT ChallanNo FROM ' + @DBName + '.dbo.LorryChallan WHERE ChallanNo='+CONVERT(VARCHAR(10),@ChallanNo)+'
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')
+	
+	INSERT INTO '+@DBName+'.dbo.LorryChallan
+		(	
+		ChallanNo	
+		,StartFrom
+		,EndTo
+		,ArrivalDate
+--		,StoreID
+		,TruckNo
+		,DriverName
+		,DriverPhoneNo
+		,TruckOwnerID
+		,AgentID
+		,ChallanDate
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+		)
+	VALUES
+		(
+		'''+CONVERT(VARCHAR(10),@ChallanNo)+'''
+		,'''+@StartFrom+'''
+		,'''+@EndTo+'''
+		,@ArrivalDate
+--		,@StoreNo		
+		,'''+UPPER(@TruckNo)+'''
+		,'''+@NameofDriver+'''
+		,'''+@DriverPhoneNo+'''
+		,'''+CONVERT(VARCHAR(10),@TruckownerName)+'''
+		,'''+CONVERT(VARCHAR(10),@AgentName)+'''
+		,'''+CONVERT(VARCHAR(10),@ChallanDate,101)+'''
+		,'''+@BranchName+'''
+		,''True''	
+		,'''+@UserID+'''
+		,'''+@Getdate+'''
+		)	
+
+ SELECT @LorryChallanID = SCOPE_IDENTITY()'
+
+EXEC sp_executesql @SQLString,N'@LorryChallanID INTEGER OUTPUT', @LorryChallanID OUTPUT
+
+
+--	SET @SQLString = N'=UPDATE '+@DBName+'.dbo.AutoGeneration
+--	SET 
+--		LorryChallan_ChallanNo='''+CONVERT(VARCHAR(10),@ChallanNo)+''''
+--
+--EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SELECT  @LorryChallanID
+END
+
+===============================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 21-12-2011
+		DESCRIPTION : To Insert the record to the StoreMaster Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROCEDURE [dbo].[StoreMaster_I]
+(
+@StoreNo VARCHAR(35)=null
+,@StoreAddress VARCHAR(35)=null
+,@BranchName VARCHAR(50)
+,@UserID VARCHAR(20)
+)
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+BEGIN
+SET @SQLString = N'IF NOT EXISTS (SELECT StoreNo FROM ' + @DBName + '.dbo.StoreMaster WHERE StoreNo='''+@StoreNo+'''
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')
+	
+	INSERT INTO ' + @DBName + '.dbo.StoreMaster
+		(
+		StoreNo
+		,StoreAddress
+		,BranchName
+		,Active
+		,CreatedBy
+		,CreatedDate
+		)
+	VALUES
+		(
+		'''+UPPER(@StoreNo)+'''
+		,'''+@StoreAddress+'''
+		,'''+@BranchName+'''
+		,''TRUE''
+		,'''+@UserID+'''
+		,'''+@GETDATE+'''
+		)'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+=========================================================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

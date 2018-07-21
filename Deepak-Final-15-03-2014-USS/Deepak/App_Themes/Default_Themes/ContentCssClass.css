@@ -1,0 +1,19 @@
+﻿body 
+{
+	font-family:Times New Roman;
+	margin:0px;
+	padding:0px;
+}
+
+.Content
+{
+ background-color:White;            
+            padding:5px 15px 5px 15px;              
+             font-size:small;  
+			  color:#CACACD;  
+              cursor:pointer;  
+               font-family:Verdana;             
+}
+
+
+   

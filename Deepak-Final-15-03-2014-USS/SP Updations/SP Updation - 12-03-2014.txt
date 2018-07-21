@@ -1,0 +1,3588 @@
+ALTER PROC ChangePassword_I
+(
+	@UserName VARCHAR(25)
+	,@OldPass VARCHAR(25)
+	,@NewPass VARCHAR(25)
+	,@BranchName VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString='
+			BEGIN
+				UPDATE ' + @DBName + '.dbo.UserDetails
+				SET
+					PassWord='''+@NewPass+'''
+					,UpdatedBy='''+@UserName+'''
+					,UpdatedDate='''+@GETDATE+'''
+				WHERE
+					Password='''+@OldPass+'''
+				AND 
+					UserName='''+@UserName+''' 
+				AND 
+					Active=''True'' 
+				AND 
+					BranchName='''+@BranchName+'''
+			END'
+	EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+=======================================================================================================================================
+
+CREATE PROC [dbo].[ChangePassword_OldPass_Check]
+(
+	@UserName VARCHAR(50)
+	,@OldPassword VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+  SET @SQLString=N'SELECT Password FROM UserDetails WHERE Password='''+@OldPassword+''' 
+						AND Active=''True'' AND UserName='''+@UserName+''''
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+========================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+ALTER PROCEDURE [dbo].[New_Database]
+@BranchName NVARCHAR(50)
+,@NewBranchName NVARCHAR(50)
+,@UserName Varchar(25)
+,@Password Varchar(25)
+,@SecurityQues Varchar(200)
+,@SecurityAns Varchar(200)
+,@UserID VARCHAR(20)
+
+as
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+
+DECLARE @DBase NVARCHAR(3500),@DBase1 NVARCHAR(3500),@CreateNewTable NVARCHAR(3500),@CreateNewTable1 NVARCHAR(3500),
+		@CreateNewTable2 NVARCHAR(3500),
+	   @DBName VARCHAR(50),
+       @MFGName VARCHAR(100),
+       @MdfPath VARCHAR(200),
+       @LFGName VARCHAR(100),
+       @LdfPath VARCHAR(200),
+	   @DBName1 VARCHAR(50),
+       @MFGName1 VARCHAR(100),
+       @MdfPath1 VARCHAR(200),
+       @LFGName1 VARCHAR(100),
+       @LdfPath1 VARCHAR(200)
+
+
+
+
+SELECT @DBName = (SELECT REPLACE(UPPER(LEFT(Branch ,1))+SUBSTRING(Branch ,2,LEN(Branch)),' ','_')
+					FROM Chennai.dbo.Branches WHERE Branch=@NewBranchName)
+, @MFGName= 'MGFname',@MdfPath = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName+'.mdf',
+    @LFGName = 'LFGName', @LdfPath = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName +'.ldf'
+
+
+
+SET @DBase = N'CREATE DATABASE '+ @DBName
++' ON  PRIMARY '
++'( NAME = '+@MFGName+', FILENAME = '''+@MdfPath+''') '
++'LOG ON '
++'( NAME = '+@LFGName+', FILENAME = '''+@LdfPath+''') '
+
+SELECT @DBName1 = + @DBName + '_Acc'
+
+, @MFGName1= 'MGFname',@MdfPath1 = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName1+'.mdf',
+    @LFGName1 = 'LFGName', @LdfPath1 = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName1+'.ldf'
+
+SET @DBase1 = N'CREATE DATABASE '+ @DBName1
++' ON  PRIMARY '
++'( NAME = '+@MFGName1+', FILENAME = '''+@MdfPath1+''') '
++'LOG ON '
++'( NAME = '+@LFGName1+', FILENAME = '''+@LdfPath1+''') '
+
+EXEC (@DBase)
+EXEC (@DBase1)
+
+
+
+-- Database 1 Starts --
+
+SELECT @CreateNewTable = 'CREATE TABLE '+ @DBName + '.[dbo].[AddressBook] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SurName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[GroupName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentCode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[ChargesInfoID] [int] NULL,
+	[Types] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PhonePrime] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PhoneSecondary] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob1] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob2] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailPrime] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailSecondary] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Website] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fax] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TINNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CSTNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Areacode] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdateDate] [datetime] NULL,
+ CONSTRAINT [PK_Contact] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[AddressChargesInfo] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[Labour] [decimal](18, 2) NULL,
+	[Delivery] [decimal](18, 2) NULL,
+	[Stationary] [decimal](18, 2) NULL,
+	[Demurrage] [decimal](18, 2) NULL,
+	[LocalCartage] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressChargesInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[AddressFreightInfo] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AddressID] [int] NULL,
+	[Packings] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[Fixed] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressFreightInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[AddressInfo] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[Address] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[City] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Pincode] [int] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName +'.[dbo].[Authentication] '+'(
+	[ID] [int] IDENTITY(100,1) NOT NULL,
+	[EmployeeID] [int] NULL,
+	[ResourceID] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[All] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Save] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Delete] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[View] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Edit] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Authentication] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Autogeneration] '+'(
+	[ID] [int] NULL,
+	[BookDetails_LRNo] [int] NULL,
+	[LorryAcSlip_SlipNo] [int] NULL,
+	[DeliverySlip_MRNo] [int] NULL,
+	[Payments_RNo] [int] NULL,
+	[ReceivedBookDetails_LRNo] [int] NULL,
+	[LorryChallan_ChallanNo] [int] NULL,
+	[DeliveryStatement_No] [int] NULL,
+	[DayBook_No] [int] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[BankDetails] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[BankCode] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AccountNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AccountType] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AccountName] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[IFSCode] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BankName] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[BranchName] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DeepakBranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BankDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[BookingDetails] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LRNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BookingDate] [datetime] NULL,
+	[ConsignorID] [int] NULL,
+	[ConsigneeID] [int] NULL,
+	[AgentID] [int] NULL,
+	[StoreID] [int] NULL,
+	[DeliveryStatus] [bit] NULL,
+	[Freight] [decimal](18, 2) NULL,
+	[HandlingCharges] [decimal](18, 2) NULL,
+	[CartageCharges] [decimal](18, 2) NULL,
+	[StatisticalCharges] [decimal](18, 2) NULL,
+	[MiscExp] [decimal](18, 2) NULL,
+	[Insurance] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AOC] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[InsuranceCoName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PolicyNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PolicyDate] [datetime] NULL,
+	[InsuredAmt] [decimal](18, 2) NULL,
+	[Risk] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StartFrom] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DestTo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BookingDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[BookingDetailsItem] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[BookingDetailsID] [int] NULL,
+	[ItemMasterID] [int] NULL,
+	[NoofPackages] [int] NULL,
+	[Description] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ActualWeight] [decimal](18, 2) NULL,
+	[ChargedWeight] [decimal](18, 2) NULL,
+	[Rate] [decimal](18, 2) NULL,
+	[Total] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BookingDetailsItem] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Branches] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Branch] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UserName] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SecQues] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SecAns] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Branches] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Company] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[CompanyName] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[PhonePrime] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PhoneSecondary] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob1] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob2] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailPrime] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailSecondary] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Website] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fax] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TINNo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CSTNo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AreaCode] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Trader] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[CreditorsBalance] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[DayBookID] [int] NULL,
+	[Date] [datetime] NULL,
+	[CreditBalance] [decimal](18, 2) NULL,
+	[CreTotBalance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_CreditorsBalance] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[CustomerMessage] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Date] [datetime] NULL,
+	[MobileNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Message] [varchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_CustomerMessage] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[DailyBalance] '+ '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[DeliveryID] [int] NULL,
+	[Date] [datetime] NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[TotBalance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName +'.[dbo].[DayBookReport] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AID] [int] NULL,
+	[Date] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DayBookReport] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[DeliverySlip] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[MRNO] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[LorryChallanDescID] [int] NULL,
+	[CustomerName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DeliveryDate] [datetime] NULL,
+	[ActualWeight] [decimal](18, 2) NULL,
+	[Packing] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PrivateMarks] [varchar](150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fixed] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Freight] [decimal](18, 2) NULL,
+	[Labour] [decimal](18, 2) NULL,
+	[DeliveryCh] [decimal](18, 2) NULL,
+	[StationaryCh] [decimal](18, 2) NULL,
+	[Demurrage] [decimal](18, 2) NULL,
+	[LocalCartage] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[PaymentStatus] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DeliverySlip] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[DeliveryStatementReport] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AID] [int] NULL,
+	[DeliveryDate] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DeliveryStatementReport] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Employee] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmpCode] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[EmpName] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[AddressInfoID] [int] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Employee] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[EmployeeInfo] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmployeeID] [int] NULL,
+	[FatherName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[MotherName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Gender] [int] NULL,
+	[DOB] [datetime] NULL,
+	[Phone] [int] NULL,
+	[Mobile] [int] NULL,
+	[Email] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Qualification] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Designation] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DOJ] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+ CONSTRAINT [PK_EmployeeInfo_1] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[ItemMaster] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ItemName] [varchar](35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Rate] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryAcSlip] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[SlipNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Date] [datetime] NULL,
+	[LorryDate] [datetime] NULL,
+	[LorryNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StartFrom] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EndTo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentID] [int] NULL,
+	[LorryToPay] [decimal](18, 2) NULL,
+	[LorryToPayBalance] [decimal](18, 2) NULL,
+	[LorryHire] [decimal](18, 2) NULL,
+	[Advance] [decimal](18, 2) NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[FreightPayable] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryAcSlip] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryAcSlipPackages] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LorryAcSlipID] [int] NULL,
+	[LSlipNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ChallanNo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Destination] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Packages] [int] NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[Collections] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryAcSlipPackages] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryChallan] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ChallanNo] [int] NULL,
+	[ArrivalDate] [datetime] NULL,
+	[DriverPhoneNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StartFrom] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EndTo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TruckNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DriverName] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TruckOwnerID] [int] NULL,
+	[AgentID] [int] NULL,
+	[ChallanDate] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpadatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryChallan] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryChallanDescription] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LorryChallanID] [int] NULL,
+	[Branch] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentCode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[LRDate] [datetime] NULL,
+	[LRNo] [int] NULL,
+	[NoofPackages] [int] NULL,
+	[Contents] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StoreID] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[ToPay] [decimal](18, 2) NULL,
+	[Paid] [decimal](18, 2) NULL,
+	[PrivateMarks] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryChallanDescription] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Payments] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[PaymentType] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[MRNO] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ReceiptNo] [int] NULL,
+	[ContactId] [int] NULL,
+	[EmpID] [int] NULL,
+	[PaidDate] [datetime] NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[PaidAmount] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[PaymentMode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Payments] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Payments_ChequeDetails] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[PaymentsID] [int] NULL,
+	[ChequeNo] [int] NULL,
+	[ChequeDate] [datetime] NULL,
+	[BankName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Payments_ChequeDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[ResourceMaster] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[ResourceName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PageTitle] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Modules] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Display] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedBy] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [pk_ResourceMaster_ID] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[StockDetails] '+'(
+	[ID] [int] IDENTITY(1000,1) NOT NULL,
+	[StoreNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[ItemName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Quantity] [int] NULL,
+	[Unit] [int] NULL,
+	[LRNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Stock_1] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[StoreMaster] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[StoreNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StoreAddress] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_StoreMaster] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[UserDetails] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmpName] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UserName] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PassWord] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SecuQues] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SecuAns] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_UserDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+-- Foreign Keys Starts --
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].' + '[LorryAcSlipPackages]' + ' WITH CHECK ADD  CONSTRAINT [FK_LorryAcSlipPackages_LorryAcSlip] FOREIGN KEY([LorryAcSlipID])
+REFERENCES ' + @DBName + '.[dbo].' + '[LorryAcSlip]' + ' ([ID])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].[LorryChallanDescription]  WITH CHECK ADD  CONSTRAINT [FK_LorryChallanDescription_LorryChallan] FOREIGN KEY([LorryChallanID])
+REFERENCES ' + @DBName + '.[dbo].[LorryChallan] ([ID])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].[BookingDetailsItem]  WITH CHECK ADD  CONSTRAINT [FK_BookingDetailsItem_BookingDetails] FOREIGN KEY([BookingDetailsID])
+REFERENCES ' + @DBName + '.[dbo].[BookingDetails] ([ID])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].[BankDetails]  WITH CHECK ADD  CONSTRAINT [FK_bankdetails_addressinfo] FOREIGN KEY([AddressInfoID])
+REFERENCES ' + '.[dbo].[AddressInfo] ([ID])'
+
+EXEC (@CreateNewTable1)
+
+-- Foreign Keys Ends --
+
+-- Database 1 End --
+
+-- Database 2 Starts --
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Accounts] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[Companyid] [int] NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Name] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Types] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+	[Address] [varchar](200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StateId] [int] NULL,
+	[Pincode] [int] NULL,
+	[PanITNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SalesTaxNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[GroupId] [int] NOT NULL,
+	[IsHiddenUser] [bit] NOT NULL,
+	[City] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+ CONSTRAINT [PK_Accounts] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Company] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Name] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+	[Address] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StateId] [int] NULL,
+	[Pincode] [int] NULL,
+	[MailingName] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Telephone] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Email] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Maintain] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[FinancialStart] [datetime] NULL,
+	[BooksStart] [datetime] NULL,
+ CONSTRAINT [PK_Company] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Company_EntryItemCount] '+'(
+	[CompanyId] [int] NULL,
+	[ItemCount] [bigint] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[DebitsCredits] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[Date] [datetime] NOT NULL,
+	[Accountid] [int] NOT NULL,
+	[AccOriCustID] [int] NULL,
+	[DeliveryID] [int] NULL,
+	[PaymentID] [int] NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedAt] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Type] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+	[Particular] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[IsHiddenUser] [bit] NULL,
+	[RelationAccount] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EntryItemCount] [bigint] NULL,
+ CONSTRAINT [PK_DebitsCredits] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[FinancialYears] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[startingyear] [int] NULL,
+	[closingyear] [int] NULL,
+	[Status] [bit] NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Group] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[CreatedAt] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Name] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ParentGroupId] [int] NOT NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+ CONSTRAINT [PK_Group] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[ParentGroup] '+'(
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[Status] [bit] NOT NULL,
+	[Side] [nvarchar](2) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+ CONSTRAINT [PK_ParentGroup] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Role] '+'(
+	[Id] [int] NOT NULL,
+	[Name] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[State] '+'(
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+ CONSTRAINT [PK_State] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[User_Company] '+'(
+	[OID] [int] IDENTITY(1,1) NOT NULL,
+	[CompanyID] [int] NOT NULL,
+	[UserID] [int] NOT NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+
+---Foreign Keys from Accounts Database---
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName1 + '.[dbo].[ParentGroup]  WITH CHECK ADD  CONSTRAINT [FK_ParentGroup_ParentGroup] FOREIGN KEY([Id])
+REFERENCES ' + @DBName1 + '.[dbo].[ParentGroup] ([Id])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName1 + '.[dbo].[Accounts]  WITH CHECK ADD  CONSTRAINT [FK_Accounts_Group] FOREIGN KEY([GroupId])
+REFERENCES ' + @DBName1 + '.[dbo].[Group] ([id])'
+
+EXEC (@CreateNewTable1)
+
+-- Database 2 End --
+
+
+----------- Records Copied from the Original DB (Chennai DB) to Other DB -------
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName1 +' EXEC sp_executesql @SQLString'
+
+SET @SQLString = N'INSERT INTO ' + @DBName1 + '.dbo.[Group] (CreatedAt,CreatedBy,ModifyAt,ModifyBy,Name,Status,ParentGroupId,BranchName)
+select CreatedAt,CreatedBy,ModifyAt,ModifyBy,Name,Status,ParentGroupId,'''+@BranchName+''' FROM Chennai_Acc.dbo.[group]'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[ResourceMaster] (ResourceName,PageTitle,Modules,Display,BranchName,Active,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+select ResourceName,PageTitle,Modules,Display,BranchName,Active,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate FROM chennai.dbo.[ResourceMaster]'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[UserDetails] (EmpName,UserName,PassWord,SecuQues,SecuAns,BranchName,Active,CreatedBy,CreatedDate)
+VALUES('''+@UserName+''','''+@UserName+''','''+@Password+''','''+@SecurityQues+''','''+@SecurityAns+''','''+@NewBranchName+''',''True'','''+@UserID+''','''+@GETDATE+''')'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+---------------------- END Copied -------------------------------------------------
+
+
+SET @SQLString='ALTER DATABASE '+@DBName+'
+SET ALLOW_SNAPSHOT_ISOLATION ON'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='ALTER DATABASE '+@DBName1+'
+SET ALLOW_SNAPSHOT_ISOLATION ON'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+===================================================================================================================================================
+
+
+ALTER PROC [dbo].[Customer_Report]
+(
+	@TDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+SET @SQLString = N'Create Table #Delivery(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Delivery(Name,Amount)
+(
+	Select Name,ISNULL(SUM(Amount),0) as Amount FROM '+@DBName+'.dbo.DeliverySlip DS JOIN '+@DBName+'.dbo.AddressBook AB ON DS.CustomerName=AB.Name
+		WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH'' AND DS.Active=''True'' AND AB.Active=''True''
+		AND DS.BranchName='''+@BranchName+''' AND DS.DeliveryDate<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+ 		GROUP BY NAME
+)
+
+Create Table #Payments(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Payments(Name,Amount)
+(
+	Select Name,ISNULL(SUM(Amount),0) as Amount FROM '+@DBName+'.dbo.Payments P JOIN '+@DBName+'.dbo.AddressBook AB ON P.ContactID=AB.ID
+		WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH'' AND P.Active=''True'' AND AB.Active=''True''
+		AND P.BranchName='''+@BranchName+''' AND P.PaidDate<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+		GROUP BY NAME
+)
+
+
+Create Table #DailyBal(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #DailyBal(Name,Amount)
+(
+	Select Name,ISNULL(SUM(Balance),0) as Amount FROM '+@DBName+'.dbo.DailyBalance D JOIN '+@DBName+'.dbo.AddressBook AB ON D.ContactID=AB.ID 
+		WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH''	AND DeliveryID is null and D.Active=''True'' 
+		AND AB.Active=''True'' AND D.BranchName='''+@BranchName+''' AND D.Date<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+		GROUP BY NAME
+)
+
+Create Table #Creditors(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Creditors(Name,Amount)
+(
+	Select Name,ISNULL(SUM(CreditBalance),0) as Amount FROM '+@DBName+'.dbo.CreditorsBalance CB JOIN '+@DBName+'.dbo.AddressBook AB ON CB.ContactID=AB.ID 
+			WHERE AB.GroupName=''Sundry Debtors'' AND CB.BranchName='''+@BranchName+''' AND AB.Active=''True'' AND CB.Active=''True'' 
+			AND CB.ContactID IN(SELECT DB.ContactID FROM '+@DBName+'.dbo.DailyBalance DB JOIN '+@DBName+'.dbo.AddressBook AB ON	DB.ContactID=AB.ID 
+			WHERE AB.GroupName=''Sundry Debtors'' AND AB.Active=''True'' AND DB.Active=''True'' AND DB.BranchName='''+@BranchName+''') 
+			AND CB.Date<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+			GROUP BY NAME
+)
+
+Create Table #Final(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Final(Name,Amount)
+(
+	Select D.Name,ISNULL(D.Amount,0)+ ISNULL(DB.Amount,0) as Amount FROM #Delivery D FULL JOIN #DailyBal DB ON D.Name=DB.Name
+)
+
+Create Table #FinalP(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #FinalP(Name,Amount)
+(
+	Select D.Name,ISNULL(D.Amount,0)+ISNULL(DB.Amount,0) as Amount FROM #Payments D FULL JOIN #Creditors DB ON D.Name=DB.Name 
+)
+
+
+
+DECLARE @A VARCHAR(2000)
+
+SET @A=''WITH CTE AS (Select F.Name,Case When ISNULL(SUM(F.Amount),0)>ISNULL(sum(FP.Amount),0) THEN ISNULL(sum(F.Amount),0)-ISNULL(sum(FP.Amount),0)	
+		ELSE ISNULL(sum(FP.Amount),0)-ISNULL(sum(F.Amount),0) END as TotalBalance FROM #Final F full JOIN #FinalP FP ON F.Name=FP.Name
+where f.name!=''''null''''
+		 group by f.name)
+		Select Name, CONVERT(INT,ROUND(TotalBalance,0)) as TotalBalance
+		,TotOutAmt=(SELECT CONVERT(INT,ROUND(ISNULL(SUM(TotalBalance),NULL),0)) FROM CTE) FROM CTE where Name!=''''NULL'''' and totalbalance>0
+		 GROUP BY Name,TotalBalance ORDER BY NAME ''
+
+EXEC(@A)
+
+
+--select * from #delivery
+--select * from #Payments
+--select * from #dailybal
+--select * from #creditors
+--select * from #Final
+--select * from #FinalP
+
+drop table #delivery
+drop table #Payments
+drop table #dailybal
+drop table #Final
+drop table #FinalP
+drop table #creditors'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)',@SQLString=@SQLString
+
+
+=============================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 18-2-2012
+		DESCRIPTION : Report for Delivery Slip OR Delivery Reciept
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROC [dbo].[DeliverReceipt_Report]
+(
+	@MRNo INT
+	,@Fixed VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @TotCh DECIMAL(18,2)
+DECLARE @TotCh1 DECIMAL(18,2)
+DECLARE @TotCh2 DECIMAL(18,2)
+DECLARE @OldFreight DECIMAL(18,2)
+DECLARE @OldService DECIMAL(18,2)
+DECLARE @NewService DECIMAL(18,2)
+DECLARE @OldDeliCh DECIMAL(18,2)
+DECLARE @NewDeliCh DECIMAL(18,2)
+DECLARE @OldTotal DECIMAL(18,2)
+DECLARE @NewFreight DECIMAL(18,2)
+DECLARE @NewFreight1 DECIMAL(18,2)
+DECLARE @CashName VARCHAR(50)
+DECLARE @OldID INT
+
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh=CONVERT(INT,ROUND(SUM((DS.ActualWeight*DS.Freight)+DS.Labour+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((DS.ActualWeight*DS.Freight)*(DS.ServiceTax)/100),0))),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh INTEGER OUTPUT', @TotCh OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh1=CONVERT(INT,ROUND(SUM((LCD.NoOfPackages*DS.Freight)+DS.Labour+(LCD.NoOfPackages*DS.DeliveryCh)+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((LCD.NoOfPackages*DS.Freight)*(DS.ServiceTax)/100),0))),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh1 INTEGER OUTPUT', @TotCh1 OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh2=CONVERT(INT,ROUND(SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh2 INTEGER OUTPUT', @TotCh2 OUTPUT
+
+SET @SQLString=N'(SELECT @OldFreight=DS.Freight
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldFreight INTEGER OUTPUT', @OldFreight OUTPUT
+
+SET @SQLString=N'(SELECT @OldDelich=DS.DeliveryCh
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldDelich INTEGER OUTPUT', @OldDelich OUTPUT
+
+
+SET @SQLString=N'(SELECT @OldService=DS.ServiceTax
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldService INTEGER OUTPUT', @OldService OUTPUT
+
+SET @SQLString=N'(SELECT @OldTotal=CONVERT(INT,ROUND(SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldTotal INTEGER OUTPUT', @OldTotal OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight=CONVERT(INT,ROUND(SUM((DS.ActualWeight*DS.Freight)),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight INTEGER OUTPUT', @NewFreight OUTPUT
+
+SET @SQLString=N'(SELECT @NewService=CONVERT(INT,ROUND(SUM(convert(int,round(CAST(((DS.ActualWeight * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0))),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewService INTEGER OUTPUT', @NewService OUTPUT
+
+SET @SQLString=N'(SELECT @NewDeliCh=CONVERT(INT,ROUND(SUM((LCD.NoOfPackages*DS.DeliveryCh)),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewDeliCh INTEGER OUTPUT', @NewDeliCh OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight1=CONVERT(INT,ROUND(SUM((LCD.NoOfPackages*DS.Freight)),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight1 INTEGER OUTPUT', @NewFreight1 OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+				SET	@TotCh=@TotCh2
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@TotCh+@NewDeliCh
+				SET @OldFreight=@NewFreight
+				SET @OldService=@NewService
+				SET @OldDeliCh=@NewDeliCh
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@OldTotal
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+	END
+--ELSE
+--	BEGIN
+--		IF(@CashName!='CASH')
+--			BEGIN
+--				SET	@TotCh=@TotCh2
+--			END
+--		ELSE
+--			BEGIN
+--				SET	@TotCh=@TotCh
+--				SET @OldFreight=@OldFreight
+--			END
+--	END
+
+BEGIN
+	SET @SQLString=N'IF('''+@Fixed+'''!=''Fixed'')
+		BEGIN
+			IF('''+@CashName+'''!=''CASH'')
+				 SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,'''+CONVERT(VARCHAR(10),@OldFreight)+''' as Freight
+					,DS.Labour
+					,'''+CONVERT(VARCHAR(10),@OldDeliCh)+''' as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,'''+CONVERT(VARCHAR(10),@OldService)+''' as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			ELSE
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,DS.DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,DS.ServiceTax as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+		END
+		ELSE
+			IF('''+@CashName+'''!=''CASH'')
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,CAST(''FIXED'' as VARCHAR(10)) as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.OriCustName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((LCD.NoOfPackages * DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,CAST((LCD.NoOfPackages * DS.DeliveryCh)as Decimal(18,2)) as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,convert(int,round(CAST(((LCD.NoOfPackages * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)) as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh1)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+========================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverReceipt_CustCheck_Report]
+(
+	@MRNo INT
+	,@Fixed VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+DECLARE @TotCh DECIMAL(18,2)
+DECLARE @TotCh1 DECIMAL(18,2)
+DECLARE @TotCh2 DECIMAL(18,2)
+DECLARE @OldFreight DECIMAL(18,2)
+DECLARE @OldService DECIMAL(18,2)
+DECLARE @NewService DECIMAL(18,2)
+DECLARE @OldDeliCh DECIMAL(18,2)
+DECLARE @NewDeliCh DECIMAL(18,2)
+DECLARE @OldTotal DECIMAL(18,2)
+DECLARE @NewFreight DECIMAL(18,2)
+DECLARE @NewFreight1 DECIMAL(18,2)
+DECLARE @CashName VARCHAR(50)
+DECLARE @OldID INT
+
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh=CONVERT(INT,ROUND(SUM((DS.ActualWeight*DS.Freight)+DS.Labour+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((DS.ActualWeight*DS.Freight)*(DS.ServiceTax)/100),0))),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh INTEGER OUTPUT', @TotCh OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh1=CONVERT(INT,ROUND(SUM((LCD.NoOfPackages*DS.Freight)+DS.Labour+(LCD.NoOfPackages*DS.DeliveryCh)+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((LCD.NoOfPackages*DS.Freight)*(DS.ServiceTax)/100),0))),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh1 INTEGER OUTPUT', @TotCh1 OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh2=CONVERT(INT,ROUND(SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh2 INTEGER OUTPUT', @TotCh2 OUTPUT
+
+SET @SQLString=N'(SELECT @OldFreight=DS.Freight
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldFreight INTEGER OUTPUT', @OldFreight OUTPUT
+
+SET @SQLString=N'(SELECT @OldDelich=DS.DeliveryCh
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldDelich INTEGER OUTPUT', @OldDelich OUTPUT
+
+
+SET @SQLString=N'(SELECT @OldService=DS.ServiceTax
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldService INTEGER OUTPUT', @OldService OUTPUT
+
+SET @SQLString=N'(SELECT @OldTotal=CONVERT(INT,ROUND(SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldTotal INTEGER OUTPUT', @OldTotal OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight=CONVERT(INT,ROUND(SUM((DS.ActualWeight*DS.Freight)),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight INTEGER OUTPUT', @NewFreight OUTPUT
+
+SET @SQLString=N'(SELECT @NewService=CONVERT(INT,ROUND(SUM(convert(int,round(CAST(((DS.ActualWeight * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0))),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewService INTEGER OUTPUT', @NewService OUTPUT
+
+SET @SQLString=N'(SELECT @NewDeliCh=CONVERT(INT,ROUND(SUM((LCD.NoOfPackages*DS.DeliveryCh)),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewDeliCh INTEGER OUTPUT', @NewDeliCh OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight1=CONVERT(INT,ROUND(SUM((LCD.NoOfPackages*DS.Freight)),0))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight1 INTEGER OUTPUT', @NewFreight1 OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+				SET	@TotCh=@TotCh2
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@TotCh+@NewDeliCh
+				SET @OldFreight=@NewFreight
+				SET @OldService=@NewService
+				SET @OldDeliCh=@NewDeliCh
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@OldTotal
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+	END
+--ELSE
+--	BEGIN
+--		IF(@CashName!='CASH')
+--			BEGIN
+--				SET	@TotCh=@TotCh2
+--			END
+--		ELSE
+--			BEGIN
+--				SET	@TotCh=@TotCh
+--				SET @OldFreight=@OldFreight
+--			END
+--	END
+
+BEGIN
+	SET @SQLString=N'IF('''+@Fixed+'''!=''Fixed'')
+		BEGIN
+			IF('''+@CashName+'''!=''CASH'')
+				 SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.CustomerName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,'''+CONVERT(VARCHAR(10),@OldFreight)+''' as Freight
+					,DS.Labour
+					,'''+CONVERT(VARCHAR(10),@OldDeliCh)+''' as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,'''+CONVERT(VARCHAR(10),@OldService)+''' as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			ELSE
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.CustomerName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,DS.DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,DS.ServiceTax as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+		END
+		ELSE
+			IF('''+@CashName+'''!=''CASH'')
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,CAST(''FIXED'' as VARCHAR(10)) as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.CustomerName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((LCD.NoOfPackages * DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,CAST((LCD.NoOfPackages * DS.DeliveryCh)as Decimal(18,2)) as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,convert(int,round(CAST(((LCD.NoOfPackages * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)) as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh1)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+===================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+   /*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 20-01-2012
+		DESCRIPTION : To Insert the record to the Delivery Slip table AND Update the record to the InvoiceBalance, TotalBalance And Payments Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROC [dbo].[DeliverySlip_I]
+(
+	@LRNO			VARCHAR(25)
+	,@MRNO			VARCHAR(25)
+	,@Packing		VARCHAR(25)
+	,@hID			INT
+	,@DeliveryDate	DATETIME
+	,@ActWeight		DECIMAL(18,2)
+	,@CustomerName	VARCHAR(30)
+	,@OriCustName	VARCHAR(30)
+	,@PrivateMarks	VARCHAR(150)
+	,@Freight		DECIMAL(18,2)
+	,@Labour		DECIMAL(18,2)
+	,@DeliveryCh	DECIMAL(18,2)
+	,@StationaryCh	DECIMAL(18,2)
+	,@Demurrage		DECIMAL(18,2)
+	,@LocalCartage	DECIMAL(18,2)
+	,@ServiceTax	DECIMAL(18,2)
+	,@Fixed			VARCHAR(50)
+	,@BranchName	VARCHAR(50)
+	,@UserID		VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @InvBalID INT
+DECLARE @DeliverySlipID INT
+DECLARE @ToPay DECIMAL(18,2)
+DECLARE @Amount DECIMAL(18,2)
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @TotDeliCh DECIMAL(18,2)
+DECLARE @Balance DECIMAL(18,2)
+DECLARE @ContactID INt
+DECLARE @TimeDate as datetime
+DECLARE @Time datetime
+DECLARE @NoOfPack INT
+
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+BEGIN
+	SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+
+	
+IF(@Fixed='Fixed')
+BEGIN
+SET @TotFreight=(SELECT CONVERT(INT,ROUND((@NoOfPack * @Freight),0)))
+SET @TotService=(SELECT CONVERT(INT,ROUND(((@NoOfPack * @Freight) * @ServiceTax/100),0)))
+SET @TotDeliCh=(SELECT CONVERT(INT,ROUND(((@NoOfPack * @DeliveryCh)),0)))
+END
+ELSE
+BEGIN
+SET @TotFreight=(SELECT CONVERT(INT,ROUND((@ActWeight * @Freight),0)))
+SET @TotService=(SELECT CONVERT(INT,ROUND(((@ActWeight * @Freight) * @ServiceTax/100),0)))
+SET @TotDeliCh=(SELECT CONVERT(INT,ROUND(((@NoOfPack * @DeliveryCh)),0)))
+END
+
+
+IF(@CustomerName='Cash')
+	BEGIN
+		SET @Amount=(SELECT (@Freight+@Labour+@DeliveryCh+@StationaryCh	+@Demurrage	+@LocalCartage	+@TotService) as Total)
+	END
+ELSE
+	BEGIN
+		SET @Amount=(SELECT (@TotFreight+@Labour+@TotDeliCh+@StationaryCh	+@Demurrage	+@LocalCartage	+@TotService) as Total)
+	END
+
+
+	SET @SQLString = N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNO='+CONVERT(VARCHAR(10),@MRNO)+'
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		INSERT INTO '+@DBName+'.dbo.DeliverySlip
+			(
+				MRNO
+				,LorryChallanDescID
+				,CustomerName
+				,OriCustName
+				,DeliveryDate
+				,ActualWeight
+				,Packing
+				,PrivateMarks
+				,Fixed
+				,Freight
+				,Labour
+				,DeliveryCh
+				,StationaryCh
+				,Demurrage
+				,LocalCartage
+				,ServiceTax
+				,Amount
+				,Balance
+				,BranchName
+				,Active
+				,PaymentStatus
+				,CreatedBy
+				,CreatedDate
+			)
+		VALUES
+			(
+				'''+CONVERT(VARCHAR(10),@MRNO)+'''
+				,'''+CONVERT(VARCHAR(10),@hID)+'''
+				,'''+@CustomerName+'''
+				,'''+@OriCustName+'''
+				,'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+				,'''+CONVERT(VARCHAR(10),@ActWeight)+'''
+				,'''+@Packing+'''
+				,'''+@PrivateMarks+'''
+				,'''+@Fixed+'''
+				,'''+CONVERT(VARCHAR(10),@Freight)+'''
+				,'''+CONVERT(VARCHAR(10),@Labour)+'''
+				,'''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+				,'''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+				,'''+CONVERT(VARCHAR(10),@Demurrage)+'''
+				,'''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+				,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+				,'''+CONVERT(VARCHAR(10),@Amount)+'''
+				,'''+CONVERT(VARCHAR(10),@Amount)+'''
+				,'''+@BranchName+'''
+				,''True''
+				,''True''
+				,'''+@UserID+'''
+				,'''+@GETDATE+'''
+			)
+		SELECT @DeliverySlipID = SCOPE_IDENTITY()
+	END'
+
+		EXEC sp_executesql @SQLString,N'@DeliverySlipID INTEGER OUTPUT', @DeliverySlipID OUTPUT
+ 
+	SET @SQLString=N'(SELECT @ToPay=(Amount) FROM '+@DBName+'.dbo.DeliverySlip WHERE LorryChallanDescID='+CONVERT(VARCHAR(10),@hID)+'
+					 AND BranchName='''+@BranchName+''' AND ACTIVE=''TRUE'')'
+	
+	EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+	
+	SET @SQLString=N'UPDATE '+@DBName+'_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ISNULL(ItemCount,0)+1'
+
+	EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+	
+	DECLARE @EntryITCount INT
+	DECLARE @AccID INT
+	DECLARE @AccOriCustID INT
+	DECLARE @AccOthersID INT
+	DECLARE @AccParcelID INT
+	DECLARE @RelAcc VARCHAR(20)
+
+	SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+	EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+	SET @SQLString=N'(SELECT @AccID=ID FROM '+@DBName+'_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+						AND BranchName='''+@BranchName+''' AND Status=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+	SET @SQLString=N'(SELECT @AccOriCustID=ID FROM '+@DBName+'_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+						AND BranchName='''+@BranchName+''' AND Status=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+	SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'_Acc.dbo.DebitsCredits 
+					WHERE Particular=''MRNo'' + '' '' +  ''' + CONVERT(VARCHAR(10),@MRNo)+'''
+					AND BranchName='''+@BranchName+''' AND Status=''True'')
+	BEGIN
+		IF('''+@CustomerName+'''=''Cash'')
+		BEGIN
+			INSERT INTO '+@DBName+'_Acc.dbo.DebitsCredits
+				(
+					Date
+					,AccountID
+					,AccOriCustID
+					,DeliveryID
+					,Amount
+					,BranchName
+					,CreatedAt
+					,CreatedBy
+					,Type
+					,Status
+					,Particular
+					,RelationAccount
+				)
+			   VALUES
+				(
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+					,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+					,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					,'''+CONVERT(VARCHAR(10),@Amount)+'''
+					,'''+@BranchName+'''
+					,'''+@GETDATE+'''
+					,'''+@UserID+'''
+					,''Cr''
+					,1
+					,''MRNo'' + '' '' + '''+CONVERT(VARCHAR(10),@MRNo)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+				)
+		END
+		ELSE
+		BEGIN
+			INSERT INTO '+@DBName+'_Acc.dbo.DebitsCredits
+				(
+					Date
+					,AccountID
+					,AccOriCustID
+					,DeliveryID
+					,Amount
+					,BranchName
+					,CreatedAt
+					,CreatedBy
+					,Type
+					,Status
+					,Particular
+					,RelationAccount
+				)
+			VALUES
+				(
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+					,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+					,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					,'''+CONVERT(VARCHAR(10),@Amount)+'''
+					,'''+@BranchName+'''
+					,'''+@GETDATE+'''
+					,'''+@UserID+'''
+					,''Dr''
+					,1
+					,''MRNo'' + '' '' + '''+CONVERT(VARCHAR(10),@MRNo)+'''
+					,'''+@CustomerName+'''
+				)
+		END
+	END'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString=N'INSERT INTO DailyBalance
+		(
+			ContactID
+			,DeliveryID
+			,Date
+			,Balance
+			,TotBalance
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@ContactID)+''',
+			'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+			'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+			'''+CONVERT(VARCHAR(10),@Amount)+''',
+			'''+CONVERT(VARCHAR(10),@Amount)+''',
+			'''+@BranchName+''',
+			''True'',
+			'''+@UserID+''',
+			'''+@GETDATE+'''
+		)'
+
+	
+--	UPDATE 
+--			AutoGeneration
+--		SET
+--			DeliverySlip_MRNo=@MRNO;
+
+	SET @SQLString=N'UPDATE
+			'+@DBName+'.dbo.LorryChallanDescription
+		SET
+			ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,CustName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+	WHERE
+		LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		BranchName='''+@BranchName+'''
+	AND
+		Active=''True''
+	'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+========================================================================================================================================
+
+ALTER PROC [dbo].[Customer_Report]
+(
+	@TDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+SET @SQLString = N'Create Table #Delivery(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Delivery(Name,Amount)
+(
+	Select Name,ISNULL(SUM(Amount),0) as Amount FROM '+@DBName+'.dbo.DeliverySlip DS JOIN '+@DBName+'.dbo.AddressBook AB ON DS.CustomerName=AB.Name
+		WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH'' AND DS.Active=''True'' AND AB.Active=''True''
+		AND DS.BranchName='''+@BranchName+''' AND DS.DeliveryDate<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+ 		GROUP BY NAME
+)
+
+Create Table #Payments(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Payments(Name,Amount)
+(
+	Select Name,ISNULL(SUM(Amount),0) as Amount FROM '+@DBName+'.dbo.Payments P JOIN '+@DBName+'.dbo.AddressBook AB ON P.ContactID=AB.ID
+		WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH'' AND P.Active=''True'' AND AB.Active=''True''
+		AND P.BranchName='''+@BranchName+''' AND P.PaidDate<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+		GROUP BY NAME
+)
+
+
+Create Table #DailyBal(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #DailyBal(Name,Amount)
+(
+	Select Name,ISNULL(SUM(Balance),0) as Amount FROM '+@DBName+'.dbo.DailyBalance D JOIN '+@DBName+'.dbo.AddressBook AB ON D.ContactID=AB.ID 
+		WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH''	AND DeliveryID is null and D.Active=''True'' 
+		AND AB.Active=''True'' AND D.BranchName='''+@BranchName+''' AND D.Date<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+		GROUP BY NAME
+)
+
+Create Table #Creditors(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Creditors(Name,Amount)
+(
+	Select Name,ISNULL(SUM(CreditBalance),0) as Amount FROM '+@DBName+'.dbo.CreditorsBalance CB JOIN '+@DBName+'.dbo.AddressBook AB ON CB.ContactID=AB.ID 
+			WHERE AB.GroupName=''Sundry Debtors'' AND CB.BranchName='''+@BranchName+''' AND AB.Active=''True'' AND CB.Active=''True'' 
+			AND CB.ContactID IN(SELECT DB.ContactID FROM '+@DBName+'.dbo.DailyBalance DB JOIN '+@DBName+'.dbo.AddressBook AB ON	DB.ContactID=AB.ID 
+			WHERE AB.GroupName=''Sundry Debtors'' AND AB.Active=''True'' AND DB.Active=''True'' AND DB.BranchName='''+@BranchName+''') 
+			AND CB.Date<='''+CONVERT(VARCHAR(10),@TDate,103)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+			GROUP BY NAME
+)
+
+Create Table #Final(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #Final(Name,Amount)
+(
+	Select D.Name,ISNULL(D.Amount,0)+ ISNULL(DB.Amount,0) as Amount FROM #Delivery D FULL JOIN #DailyBal DB ON D.Name=DB.Name
+)
+
+Create Table #FinalP(Name Varchar(30),Amount Decimal(18,2))
+
+INSERT INTO #FinalP(Name,Amount)
+(
+	Select D.Name,ISNULL(D.Amount,0)+ISNULL(DB.Amount,0) as Amount FROM #Payments D FULL JOIN #Creditors DB ON D.Name=DB.Name 
+)
+
+
+
+DECLARE @A VARCHAR(2000)
+
+SET @A=''WITH CTE AS (Select F.Name,Case When ISNULL(SUM(F.Amount),0)>ISNULL(sum(FP.Amount),0) THEN ISNULL(sum(F.Amount),0)-ISNULL(sum(FP.Amount),0)	
+		ELSE ISNULL(sum(FP.Amount),0)-ISNULL(sum(F.Amount),0) END as TotalBalance FROM #Final F full JOIN #FinalP FP ON F.Name=FP.Name
+where f.name!=''''null''''
+		 group by f.name)
+		Select '''''+CONVERT(VARCHAR(20),@TDate,103)+''''' as TDate,Name, CONVERT(INT,ROUND(TotalBalance,0)) as TotalBalance
+		,TotOutAmt=(SELECT CONVERT(INT,ROUND(ISNULL(SUM(TotalBalance),NULL),0)) FROM CTE)
+		FROM CTE where Name!=''''NULL'''' and totalbalance>0
+		ORDER BY NAME ''
+
+EXEC(@A)
+
+
+--select * from #delivery
+--select * from #Payments
+--select * from #dailybal
+--select * from #creditors
+--select * from #Final
+--select * from #FinalP
+
+drop table #delivery
+drop table #Payments
+drop table #dailybal
+drop table #Final
+drop table #FinalP
+drop table #creditors'
+
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+=================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+ALTER procedure [dbo].[USP_GetBalanceAmount]
+(
+	@AccountId bigint,    
+	@startingDate datetime,
+	@BranchName	varchar(50) 
+)
+as      
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+begin   
+	declare @DrAmount	decimal(18,2)
+	declare @CrAmount	decimal(18,2)    
+
+	SET @SQLString=N'(select @DrAmount=Sum(Amount) from ' + @DBName + '_Acc.dbo.DebitsCredits 
+					where Accountid='''+CONVERT(VARCHAR(10),@AccountId)+''' and BranchName='''+@BranchName+''' 
+					and Type=''Dr'' and status=''True'' and date <= '''+CONVERT(VARCHAR(10),@startingDate,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+''')'
+
+	EXEC sp_executesql @SQLString,N'@DrAmount INTEGER OUTPUT', @DrAmount OUTPUT
+
+--	SELECT isnull(@DrAmount,0)
+
+	SET @SQLString=N'(select @CrAmount=Sum(Amount) from ' + @DBName + '_Acc.dbo.DebitsCredits 
+					 where Accountid='''+CONVERT(VARCHAR(10),@AccountId)+''' and BranchName='''+@BranchName+'''  
+					 and Type=''Cr'' and status=''True'' and date <= '''+CONVERT(VARCHAR(10),@startingDate,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+''')'
+
+	EXEC sp_executesql @SQLString,N'@CrAmount INTEGER OUTPUT', @CrAmount OUTPUT
+	
+	SELECT isnull(@DrAmount,0),isnull(@CrAmount,0)
+--	select @DrAmount,@CrAmount
+end 
+
+
+===============================================================================================================================
+
+ALTER procedure [dbo].[SP_GetEneries]    
+(    
+	@AccountId bigint,  
+	@startingDate datetime,  
+	@closingDate datetime,
+	@BranchName varchar(50)
+)    
+as    
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+begin    
+ SET @SQLString=N'select date, Particular,RelationAccount, Type, CONVERT(INT,ROUND(ISNULL(Amount,Null),0)) as Amount from ' + @DBName + '_Acc.dbo.DebitsCredits 
+	where Accountid='''+CONVERT(VARCHAR(10),@AccountId)+'''
+	and BranchName='''+@BranchName+''' and status=''True'' and  date >= '''+CONVERT(VARCHAR(10),@startingDate,101)+'''
+	and date <='''+CONVERT(VARCHAR(10),@CLOSINGDATE,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+
+	and amount>0
+	ORDER by date'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+end    
+
+==========================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+ALTER PROCEDURE [dbo].[New_Database]
+@BranchName NVARCHAR(50)
+,@NewBranchName NVARCHAR(50)
+,@UserName Varchar(25)
+,@Password Varchar(25)
+,@SecurityQues Varchar(200)
+,@SecurityAns Varchar(200)
+,@UserID VARCHAR(20)
+
+as
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+
+DECLARE @DBase NVARCHAR(3500),@DBase1 NVARCHAR(3500),@CreateNewTable NVARCHAR(3500),@CreateNewTable1 NVARCHAR(3500),
+		@CreateNewTable2 NVARCHAR(3500),
+	   @DBName VARCHAR(50),
+       @MFGName VARCHAR(100),
+       @MdfPath VARCHAR(200),
+       @LFGName VARCHAR(100),
+       @LdfPath VARCHAR(200),
+	   @DBName1 VARCHAR(50),
+       @MFGName1 VARCHAR(100),
+       @MdfPath1 VARCHAR(200),
+       @LFGName1 VARCHAR(100),
+       @LdfPath1 VARCHAR(200)
+
+
+
+
+SELECT @DBName = (SELECT REPLACE(UPPER(LEFT(Branch ,1))+SUBSTRING(Branch ,2,LEN(Branch)),' ','_')
+					FROM Chennai.dbo.Branches WHERE Branch=@NewBranchName)
+, @MFGName= 'MGFname',@MdfPath = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName+'.mdf',
+    @LFGName = 'LFGName', @LdfPath = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName +'.ldf'
+
+
+SET @NewBranchName=(SELECT REPLACE(UPPER(LEFT(@NewBranchName ,1))+SUBSTRING(@NewBranchName ,2,LEN(@NewBranchName)),' ','_'))
+
+SET @DBase = N'CREATE DATABASE '+ @DBName
++' ON  PRIMARY '
++'( NAME = '+@MFGName+', FILENAME = '''+@MdfPath+''') '
++'LOG ON '
++'( NAME = '+@LFGName+', FILENAME = '''+@LdfPath+''') '
+
+SELECT @DBName1 = + @DBName + '_Acc'
+
+, @MFGName1= 'MGFname',@MdfPath1 = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName1+'.mdf',
+    @LFGName1 = 'LFGName', @LdfPath1 = 'C:\Program Files\Microsoft SQL Server\MSSQL.1\MSSQL\Data\'+@DBName1+'.ldf'
+
+SET @DBase1 = N'CREATE DATABASE '+ @DBName1
++' ON  PRIMARY '
++'( NAME = '+@MFGName1+', FILENAME = '''+@MdfPath1+''') '
++'LOG ON '
++'( NAME = '+@LFGName1+', FILENAME = '''+@LdfPath1+''') '
+
+EXEC (@DBase)
+EXEC (@DBase1)
+
+
+
+-- Database 1 Starts --
+
+SELECT @CreateNewTable = 'CREATE TABLE '+ @DBName + '.[dbo].[AddressBook] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SurName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[GroupName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentCode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[ChargesInfoID] [int] NULL,
+	[Types] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PhonePrime] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PhoneSecondary] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob1] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob2] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailPrime] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailSecondary] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Website] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fax] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TINNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CSTNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Areacode] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdateDate] [datetime] NULL,
+ CONSTRAINT [PK_Contact] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[AddressChargesInfo] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[Labour] [decimal](18, 2) NULL,
+	[Delivery] [decimal](18, 2) NULL,
+	[Stationary] [decimal](18, 2) NULL,
+	[Demurrage] [decimal](18, 2) NULL,
+	[LocalCartage] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressChargesInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[AddressFreightInfo] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AddressID] [int] NULL,
+	[Packings] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[Fixed] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressFreightInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[AddressInfo] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[Address] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[City] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Pincode] [int] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_AddressInfo] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName +'.[dbo].[Authentication] '+'(
+	[ID] [int] IDENTITY(100,1) NOT NULL,
+	[EmployeeID] [int] NULL,
+	[ResourceID] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[All] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Save] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Delete] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[View] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Edit] [varchar](2500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Authentication] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Autogeneration] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[BookDetails_LRNo] [int] NULL,
+	[LorryAcSlip_SlipNo] [int] NULL,
+	[DeliverySlip_MRNo] [int] NULL,
+	[Payments_RNo] [int] NULL,
+	[ReceivedBookDetails_LRNo] [int] NULL,
+	[LorryChallan_ChallanNo] [int] NULL,
+	[DeliveryStatement_No] [int] NULL,
+	[DayBook_No] [int] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+CONSTRAINT [PK_Autogeneration] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[BankDetails] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[BankCode] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AccountNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AccountType] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AccountName] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[IFSCode] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BankName] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[BranchName] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DeepakBranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BankDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[BookingDetails] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LRNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BookingDate] [datetime] NULL,
+	[ConsignorID] [int] NULL,
+	[ConsigneeID] [int] NULL,
+	[AgentID] [int] NULL,
+	[StoreID] [int] NULL,
+	[DeliveryStatus] [bit] NULL,
+	[Freight] [decimal](18, 2) NULL,
+	[HandlingCharges] [decimal](18, 2) NULL,
+	[CartageCharges] [decimal](18, 2) NULL,
+	[StatisticalCharges] [decimal](18, 2) NULL,
+	[MiscExp] [decimal](18, 2) NULL,
+	[Insurance] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AOC] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[InsuranceCoName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PolicyNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PolicyDate] [datetime] NULL,
+	[InsuredAmt] [decimal](18, 2) NULL,
+	[Risk] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StartFrom] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DestTo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BookingDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[BookingDetailsItem] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[BookingDetailsID] [int] NULL,
+	[ItemMasterID] [int] NULL,
+	[NoofPackages] [int] NULL,
+	[Description] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ActualWeight] [decimal](18, 2) NULL,
+	[ChargedWeight] [decimal](18, 2) NULL,
+	[Rate] [decimal](18, 2) NULL,
+	[Total] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_BookingDetailsItem] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Branches] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Branch] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UserName] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SecQues] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SecAns] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Branches] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Company] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[CompanyName] [varchar](40) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[AddressInfoID] [int] NOT NULL,
+	[PhonePrime] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PhoneSecondary] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob1] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob2] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailPrime] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EmailSecondary] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Website] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fax] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TINNo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CSTNo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AreaCode] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Trader] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[CreditorsBalance] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[DayBookID] [int] NULL,
+	[Date] [datetime] NULL,
+	[CreditBalance] [decimal](18, 2) NULL,
+	[CreTotBalance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_CreditorsBalance] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[CustomerMessage] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Date] [datetime] NULL,
+	[MobileNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Message] [varchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_CustomerMessage] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[DailyBalance] '+ '(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ContactID] [int] NULL,
+	[DeliveryID] [int] NULL,
+	[Date] [datetime] NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[TotBalance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName +'.[dbo].[DayBookReport] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AID] [int] NULL,
+	[Date] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DayBookReport] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[DeliverySlip] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[MRNO] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[LorryChallanDescID] [int] NULL,
+	[CustomerName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DeliveryDate] [datetime] NULL,
+	[ActualWeight] [decimal](18, 2) NULL,
+	[Packing] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PrivateMarks] [varchar](150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Fixed] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Freight] [decimal](18, 2) NULL,
+	[Labour] [decimal](18, 2) NULL,
+	[DeliveryCh] [decimal](18, 2) NULL,
+	[StationaryCh] [decimal](18, 2) NULL,
+	[Demurrage] [decimal](18, 2) NULL,
+	[LocalCartage] [decimal](18, 2) NULL,
+	[ServiceTax] [decimal](18, 2) NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[PaymentStatus] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DeliverySlip] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[DeliveryStatementReport] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[AID] [int] NULL,
+	[DeliveryDate] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_DeliveryStatementReport] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Employee] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmpCode] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[EmpName] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[AddressInfoID] [int] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Employee] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[EmployeeInfo] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmployeeID] [int] NULL,
+	[FatherName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[MotherName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Gender] [int] NULL,
+	[DOB] [datetime] NULL,
+	[Phone] [int] NULL,
+	[Mobile] [int] NULL,
+	[Email] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Qualification] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Designation] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DOJ] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+ CONSTRAINT [PK_EmployeeInfo_1] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[ItemMaster] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ItemName] [varchar](35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Rate] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryAcSlip] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[SlipNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Date] [datetime] NULL,
+	[LorryDate] [datetime] NULL,
+	[LorryNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StartFrom] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EndTo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentID] [int] NULL,
+	[LorryToPay] [decimal](18, 2) NULL,
+	[LorryToPayBalance] [decimal](18, 2) NULL,
+	[LorryHire] [decimal](18, 2) NULL,
+	[Advance] [decimal](18, 2) NULL,
+	[Balance] [decimal](18, 2) NULL,
+	[FreightPayable] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryAcSlip] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryAcSlipPackages] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LorryAcSlipID] [int] NULL,
+	[LSlipNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ChallanNo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Destination] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Packages] [int] NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[Collections] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryAcSlipPackages] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryChallan] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ChallanNo] [int] NULL,
+	[ArrivalDate] [datetime] NULL,
+	[DriverPhoneNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StartFrom] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EndTo] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TruckNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DriverName] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TruckOwnerID] [int] NULL,
+	[AgentID] [int] NULL,
+	[ChallanDate] [datetime] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpadatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryChallan] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[LorryChallanDescription] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[LorryChallanID] [int] NULL,
+	[Branch] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AgentCode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[LRDate] [datetime] NULL,
+	[LRNo] [int] NULL,
+	[NoofPackages] [int] NULL,
+	[Contents] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StoreID] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Weight] [decimal](18, 2) NULL,
+	[ToPay] [decimal](18, 2) NULL,
+	[Paid] [decimal](18, 2) NULL,
+	[PrivateMarks] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Mob] [varchar](15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_LorryChallanDescription] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Payments] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[PaymentType] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[MRNO] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ReceiptNo] [int] NULL,
+	[ContactId] [int] NULL,
+	[EmpID] [int] NULL,
+	[PaidDate] [datetime] NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[PaidAmount] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[PaymentMode] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Payments] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[Payments_ChequeDetails] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[PaymentsID] [int] NULL,
+	[ChequeNo] [int] NULL,
+	[ChequeDate] [datetime] NULL,
+	[BankName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Payments_ChequeDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[ResourceMaster] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[ResourceName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PageTitle] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Modules] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Display] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedBy] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [pk_ResourceMaster_ID] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[StockDetails] '+'(
+	[ID] [int] IDENTITY(1000,1) NOT NULL,
+	[StoreNo] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[ItemName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Quantity] [int] NULL,
+	[Unit] [int] NULL,
+	[LRNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_Stock_1] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[StoreMaster] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[StoreNo] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StoreAddress] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[CreatedBy] [varchar](35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_StoreMaster] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+SELECT @CreateNewTable='CREATE TABLE ' + @DBName + '.[dbo].[UserDetails] '+'(
+	[ID] [int] IDENTITY(1001,1) NOT NULL,
+	[EmpName] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UserName] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PassWord] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SecuQues] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[SecuAns] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NOT NULL,
+	[CreatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [varchar](25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[UpdatedDate] [datetime] NULL,
+ CONSTRAINT [PK_UserDetails] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable)
+
+-- Foreign Keys Starts --
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].' + '[LorryAcSlipPackages]' + ' WITH CHECK ADD  CONSTRAINT [FK_LorryAcSlipPackages_LorryAcSlip] FOREIGN KEY([LorryAcSlipID])
+REFERENCES ' + @DBName + '.[dbo].' + '[LorryAcSlip]' + ' ([ID])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].[LorryChallanDescription]  WITH CHECK ADD  CONSTRAINT [FK_LorryChallanDescription_LorryChallan] FOREIGN KEY([LorryChallanID])
+REFERENCES ' + @DBName + '.[dbo].[LorryChallan] ([ID])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].[BookingDetailsItem]  WITH CHECK ADD  CONSTRAINT [FK_BookingDetailsItem_BookingDetails] FOREIGN KEY([BookingDetailsID])
+REFERENCES ' + @DBName + '.[dbo].[BookingDetails] ([ID])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName + '.[dbo].[BankDetails]  WITH CHECK ADD  CONSTRAINT [FK_bankdetails_addressinfo] FOREIGN KEY([AddressInfoID])
+REFERENCES ' + '.[dbo].[AddressInfo] ([ID])'
+
+EXEC (@CreateNewTable1)
+
+-- Foreign Keys Ends --
+
+-- Database 1 End --
+
+-- Database 2 Starts --
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Accounts] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[Companyid] [int] NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Name] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[OriCustName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Types] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+	[Address] [varchar](200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StateId] [int] NULL,
+	[Pincode] [int] NULL,
+	[PanITNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SalesTaxNo] [varchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[GroupId] [int] NOT NULL,
+	[IsHiddenUser] [bit] NOT NULL,
+	[City] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Active] [bit] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+ CONSTRAINT [PK_Accounts] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Company] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Name] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+	[Address] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[StateId] [int] NULL,
+	[Pincode] [int] NULL,
+	[MailingName] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Telephone] [varchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Email] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Maintain] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[FinancialStart] [datetime] NULL,
+	[BooksStart] [datetime] NULL,
+ CONSTRAINT [PK_Company] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Company_EntryItemCount] '+'(
+	[CompanyId] [int] NULL,
+	[ItemCount] [bigint] NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[DebitsCredits] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[Date] [datetime] NOT NULL,
+	[Accountid] [int] NOT NULL,
+	[AccOriCustID] [int] NULL,
+	[DeliveryID] [int] NULL,
+	[PaymentID] [int] NULL,
+	[Amount] [decimal](18, 2) NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedAt] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyBy] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Type] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+	[Particular] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[IsHiddenUser] [bit] NULL,
+	[RelationAccount] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[EntryItemCount] [bigint] NULL,
+ CONSTRAINT [PK_DebitsCredits] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[FinancialYears] '+'(
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[startingyear] [int] NULL,
+	[closingyear] [int] NULL,
+	[Status] [bit] NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Group] '+'(
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[CreatedAt] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Name] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ParentGroupId] [int] NOT NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+ CONSTRAINT [PK_Group] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[ParentGroup] '+'(
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[Status] [bit] NOT NULL,
+	[Side] [nvarchar](2) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+ CONSTRAINT [PK_ParentGroup] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[Role] '+'(
+	[Id] [int] NOT NULL,
+	[Name] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[BranchName] [varchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[State] '+'(
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedAt] [datetime] NULL,
+	[CreatedBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ModifyAt] [datetime] NULL,
+	[ModifyBy] [varchar](250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Status] [bit] NOT NULL,
+ CONSTRAINT [PK_State] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='CREATE TABLE ' + @DBName1 + '.[dbo].[User_Company] '+'(
+	[OID] [int] IDENTITY(1,1) NOT NULL,
+	[CompanyID] [int] NOT NULL,
+	[UserID] [int] NOT NULL
+) ON [PRIMARY]'
+
+EXEC (@CreateNewTable1)
+
+
+---Foreign Keys from Accounts Database---
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName1 + '.[dbo].[ParentGroup]  WITH CHECK ADD  CONSTRAINT [FK_ParentGroup_ParentGroup] FOREIGN KEY([Id])
+REFERENCES ' + @DBName1 + '.[dbo].[ParentGroup] ([Id])'
+
+EXEC (@CreateNewTable1)
+
+SELECT @CreateNewTable1='ALTER TABLE ' + @DBName1 + '.[dbo].[Accounts]  WITH CHECK ADD  CONSTRAINT [FK_Accounts_Group] FOREIGN KEY([GroupId])
+REFERENCES ' + @DBName1 + '.[dbo].[Group] ([id])'
+
+EXEC (@CreateNewTable1)
+
+-- Database 2 End --
+
+
+----------- Records Copied from the Original DB (Chennai DB) to Other DB -------
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName1 +' EXEC sp_executesql @SQLString'
+
+SET @SQLString = N'INSERT INTO ' + @DBName1 + '.dbo.[Group] (CreatedAt,CreatedBy,ModifyAt,ModifyBy,Name,Status,ParentGroupId,BranchName)
+select CreatedAt,CreatedBy,ModifyAt,ModifyBy,Name,Status,ParentGroupId,'''+@BranchName+''' FROM Chennai_Acc.dbo.[group]'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[ResourceMaster] (ResourceName,PageTitle,Modules,Display,BranchName,Active,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+select ResourceName,PageTitle,Modules,Display,BranchName,Active,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate FROM chennai.dbo.[ResourceMaster]'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[UserDetails] (EmpName,UserName,PassWord,SecuQues,SecuAns,BranchName,Active,CreatedBy,CreatedDate)
+VALUES('''+@UserName+''','''+@UserName+''','''+@Password+''','''+@SecurityQues+''','''+@SecurityAns+''','''+@NewBranchName+''',''True'','''+@UserID+''','''+@GETDATE+''')'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString = N'INSERT INTO ' + @DBName + '.dbo.[Autogeneration] 
+(BookDetails_LRNo,LorryAcSlip_SlipNo,DeliverySlip_MRNo,Payments_RNo,LorryChallan_ChallanNo,DeliveryStatement_No,DayBook_No,BranchName)
+VALUES('''+'0'+''','''+'0'+''','''+'0'+''','''+'0'+''','''+'0'+''','''+'0'+''','''+'0'+''','''+@NewBranchName+''')'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+---------------------- END Copied -------------------------------------------------
+
+
+SET @SQLString='ALTER DATABASE '+@DBName+'
+SET ALLOW_SNAPSHOT_ISOLATION ON'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString='ALTER DATABASE '+@DBName1+'
+SET ALLOW_SNAPSHOT_ISOLATION ON'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+
+=======================================================================================================================================
+
+ALTER PROC AddressBook_Check_Change_Name
+(
+	@CheckName INT
+	,@CateName VARCHAR(30)
+	,@BranchName VARCHAR(30)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @CustName varchar(200)
+
+SET @SQLString=N'SELECT @CustName=Name FROM ' + @DBName + '.dbo.AddressBook WHERE BranchName=''' + @BranchName + ''' 
+				AND ID=''' + CONVERT(VARCHAR(15),@CheckName) + ''' AND Active=''True'''
+
+EXEC sp_executesql @SQLString,N'@CustName VARCHAR(20) OUTPUT', @CustName OUTPUT
+
+BEGIN
+	SET @SQLString=N'IF EXISTS(SELECT DISTINCT CustomerName FROM ' + @DBName + '.dbo.DeliverySlip WHERE BranchName=''' + @BranchName + '''
+					AND CustomerName='''+ @CustName + ''' AND Active=''True'')
+	BEGIN
+		SELECT Name FROM ' + @DBName + '.dbo.AddressBook
+		WHERE ID='''+ CONVERT(VARCHAR(15),@CheckName) + ''' AND [Types]='''+ @CateName + ''' AND Active=''True'' AND BranchName='''+ @BranchName + '''
+	END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+=======================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+	/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 19-12-2011
+		DESCRIPTION : To Update the record from the AddressBook and AddressInfo Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROCEDURE [dbo].[AddressBook_U]
+(
+			@ContactID INT
+			,@AccID INT
+			,@ChargesID INT
+            ,@AddressID int		
+            ,@Category VARCHAR(20)		
+            ,@Address VARCHAR(50)
+		    ,@PinCode INT
+		    ,@City VARCHAR(20)
+            ,@Name varchar(30) 
+			,@SurName varchar(30) 
+			,@OriCustName varchar(30) 
+			,@GroupName varchar(30)   
+			,@GroupID INT   
+			,@AgentCode varchar(30)      
+            ,@PhonePrime varchar(20)
+            ,@PhoneSecondary varchar(20)
+			,@Mob1 VARCHAR(15)
+			,@Mob2 VARCHAR(15)
+            ,@EmailPrime varchar(40)
+            ,@EmailSecondary varchar(40)
+            ,@Website varchar(50)
+            ,@Fax varchar(30)
+            ,@TINNo varchar(30)
+            ,@CSTNo varchar(20)
+            ,@Areacode varchar(20)
+			,@Labour DECIMAL(18,2)
+			,@Delivery DECIMAL(18,2)
+			,@Stationary DECIMAL(18,2)
+			,@Demurrage DECIMAL(18,2)
+			,@LocalCartage DECIMAL(18,2)
+			,@ServiceTax DECIMAL(18,2)
+			,@BranchName varchar(50)
+		    ,@UserID varchar(25)
+)
+AS
+
+DECLARE @ChargesInfoID INT
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+BEGIN
+SET @SQLString=N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@AddressID) + ''' AND Active=''True'')
+BEGIN	
+	if('''+ CONVERT(VARCHAR(15),@PinCode) + ''' != 0)
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressInfo
+	SET
+				Address=''' + Upper(@Address) + ''' 
+			   ,PinCode=''' + CONVERT(VARCHAR(15),@PinCode) + '''
+			   ,City=''' + Upper(@City) + '''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' +  CONVERT(VARCHAR(10),@AddressID) + ''' AND Active=''True''   
+	END
+ELSE
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressInfo
+	SET
+				Address=''' + Upper(@Address) + ''' 
+
+			   ,City=''' + Upper(@City) + '''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' + CONVERT(VARCHAR(10),@AddressID) + ''' AND Active=''True''   
+	END
+END'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+BEGIN
+SET @SQLString=N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressChargesInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@ChargesID) + ''' AND Active=''True'')
+BEGIN	
+	BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressChargesInfo
+	SET
+			   Labour='''+CONVERT(VARCHAR(10),@Labour)+'''
+			   ,Delivery='''+CONVERT(VARCHAR(10),@Delivery)+'''
+			   ,Stationary='''+CONVERT(VARCHAR(10),@Stationary)+'''
+			   ,Demurrage='''+CONVERT(VARCHAR(10),@Demurrage)+'''
+			   ,LocalCartage='''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+			   ,ServiceTax='''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+			   ,BranchName=''' + @BranchName + '''
+			   ,Active=''True''
+			   ,UpdatedBy=''' + @UserID + '''
+			   ,UpdatedDate=''' + @GETDATE + '''
+	WHERE 
+				ID=''' + CONVERT(VARCHAR(10),@ChargesID) + ''' AND Active=''True''   
+	END
+END'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+SET @SQLString=N'BEGIN IF NOT EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressChargesInfo WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(15),@ChargesID) + ''' AND Active=''True'')
+		INSERT INTO ' +@DBName+'.dbo.AddressChargesInfo
+		(
+					Labour 
+					,Delivery
+					,Stationary
+					,Demurrage
+					,LocalCartage
+					,ServiceTax
+					,BranchName
+					,CreatedBy
+					,CreatedDate
+					,Active
+		)
+		VALUES
+		(
+					'''+CONVERT(VARCHAR(10),@Labour)+'''
+					,'''+CONVERT(VARCHAR(10),@Delivery)+'''
+					,'''+CONVERT(VARCHAR(10),@Stationary)+'''
+					,'''+CONVERT(VARCHAR(10),@Demurrage)+'''
+					,'''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+					,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+					,'''+@BranchName+''' 
+					,'''+@UserID+'''
+					,'''+@GETDATE+'''
+					,''True''
+		)
+	END
+
+SELECT @ChargesInfoID =SCOPE_IDENTITY()'
+EXEC sp_executesql @SQLString,N'@ChargesInfoID INTEGER OUTPUT', @ChargesInfoID OUTPUT
+
+IF(@ChargesID!=0)
+	BEGIN
+		SET	@ChargesID=@ChargesID
+	END
+ELSE
+	BEGIN
+		SET @ChargesID=@ChargesInfoID
+	END
+
+
+BEGIN
+SET @SQLString = N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '.dbo.AddressBook WHERE BranchName=''' + @BranchName + ''' 
+					AND ID=''' + CONVERT(VARCHAR(10),@ContactID) + ''' AND Active=''True'')
+BEGIN
+	UPDATE ' + @DBName + '.dbo.AddressBook
+	SET				
+            Name=''' + UPPER(@Name) + '''
+			,SurName=''' + UPPER(@SurName) + '''
+			,OriCustName=''' + UPPER(@OriCustName) + '''
+			,ChargesInfoID=''' + CONVERT(VARCHAR(10),@ChargesID) + '''
+			,AgentCode=''' + @AgentCode + '''
+			,Types=''' + @Category + '''
+			,GroupName=''' + @GroupName + '''
+		    ,PhonePrime=''' + @PhonePrime + '''
+            ,PhoneSecondary=''' + @PhoneSecondary + '''
+			,Mob1=''' + @Mob1 + '''
+			,Mob2=''' + @Mob2 + '''
+            ,EmailPrime=''' + UPPER(@EmailPrime) + '''
+            ,EmailSecondary=''' + UPPER(@EmailSecondary) + '''
+            ,Website=''' + UPPER(@Website) + '''
+            ,Fax=''' + @Fax + '''
+            ,TINNo=''' + @TINNo + '''
+            ,CSTNo=''' + @CSTNo + '''
+            ,Areacode=''' + @Areacode + '''
+			,BranchName=''' + @BranchName + '''
+		    ,Active=''True''
+		    ,UpdatedBy=''' + @UserID + '''
+		    ,UpdateDate=''' + @GETDATE + '''
+	WHERE
+			ID=''' + CONVERT(VARCHAR(10),@ContactID) + ''' AND Active=''True''
+END
+
+BEGIN 
+		UPDATE ' + @DBName + '_Acc.dbo.Accounts
+		SET
+			ModifyAt = ''' + @GETDATE + '''
+			,ModifyBy = ''' + @UserID + '''
+			,Name = ''' + UPPER(@Name) + '''
+			,OriCustName = ''' + UPPER(@OriCustName) + '''
+			,Status = ''1''
+			,Address = ''' + @Address + '''
+			,Pincode = ''' + CONVERT(VARCHAR(10),@Pincode) + '''
+			,City = ''' + @City + '''
+			,BranchName=''' + @BranchName + '''
+			,GroupId = ''' + CONVERT(VARCHAR(10),@GroupID) + '''
+			,IsHiddenUser = ''1''
+		WHERE
+			BranchName=''' + @BranchName + ''' AND ID=''' + CONVERT(VARCHAR(10),@AccID) + '''
+	END
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+--SELECT '1'
+END
+	
+--SET @SQLString = N'IF EXISTS (SELECT ''*'' FROM ' + @DBName + '_Acc.dbo.Accounts WHERE BranchName=''' + @BranchName + ''' 
+--					AND ID=''' + CONVERT(VARCHAR(10),@AccID) + ''' AND Active=''True'')
+--	BEGIN 
+--		UPDATE ' + @DBName + '_Acc.dbo.Accounts
+--		SET
+--			ModifyAt = ''' + @GETDATE + '''
+--			,ModifyBy = ''' + @UserID + '''
+--			,Name = ''' + UPPER(@Name) + '''
+--			,OriCustName = ''' + UPPER(@OriCustName) + '''
+--			,Status = ''1''
+--			,Address = ''' + @Address + '''
+--			,Pincode = ''' + CONVERT(VARCHAR(10),@Pincode) + '''
+--			,City = ''' + @City + '''
+--			,BranchName=''' + @BranchName + '''
+--			,GroupId = ''' + CONVERT(VARCHAR(10),@GroupID) + '''
+--			,IsHiddenUser = ''1''
+--		WHERE
+--			BranchName=''' + @BranchName + ''' AND ID=''' + CONVERT(VARCHAR(10),@AccID) + '''
+--	END'
+--
+--
+--EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+--
+
+END
+
+
+
+

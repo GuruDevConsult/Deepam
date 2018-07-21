@@ -1,0 +1,14 @@
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\BL.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\BL.pdb
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\Common.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\DAL.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\DTO.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\Microsoft.Practices.EnterpriseLibrary.Common.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\Microsoft.Practices.EnterpriseLibrary.Data.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\Microsoft.Practices.ObjectBuilder.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\Common.pdb
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\DAL.pdb
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\bin\Debug\DTO.pdb
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\obj\Debug\ResolveAssemblyReference.cache
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\obj\Debug\BL.dll
+E:\Deepak21-05-14\Deepak-Final-15-03-2014-USS\Components\BL\obj\Debug\BL.pdb

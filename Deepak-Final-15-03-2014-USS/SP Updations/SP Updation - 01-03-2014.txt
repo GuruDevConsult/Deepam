@@ -1,0 +1,348 @@
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverReceipt_CustCheck_Report]
+(
+	@MRNo INT
+	,@Fixed VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+
+DECLARE @TotCh DECIMAL(18,2)
+DECLARE @TotCh1 DECIMAL(18,2)
+DECLARE @TotCh2 DECIMAL(18,2)
+DECLARE @OldFreight DECIMAL(18,2)
+DECLARE @OldService DECIMAL(18,2)
+DECLARE @NewService DECIMAL(18,2)
+DECLARE @OldDeliCh DECIMAL(18,2)
+DECLARE @NewDeliCh DECIMAL(18,2)
+DECLARE @OldTotal DECIMAL(18,2)
+DECLARE @NewFreight DECIMAL(18,2)
+DECLARE @NewFreight1 DECIMAL(18,2)
+DECLARE @CashName VARCHAR(50)
+DECLARE @OldID INT
+
+
+SET @SQLString=N'(SELECT @CashName=CustomerName FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+'
+					 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+EXEC sp_executesql @SQLString,N'@CashName VARCHAR(20) OUTPUT', @CashName OUTPUT
+
+SET @SQLString=N'(SELECT @OldID=ID FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNo='+CONVERT(VARCHAR(10),@MRNo)+' 
+					AND BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@OldID INTEGER OUTPUT', @OldID OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh=SUM((DS.ActualWeight*DS.Freight)+DS.Labour+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((DS.ActualWeight*DS.Freight)*(DS.ServiceTax)/100),0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh INTEGER OUTPUT', @TotCh OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh1=SUM((LCD.NoOfPackages*DS.Freight)+DS.Labour+(LCD.NoOfPackages*DS.DeliveryCh)+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+convert(int,round(((LCD.NoOfPackages*DS.Freight)*(DS.ServiceTax)/100),0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh1 INTEGER OUTPUT', @TotCh1 OUTPUT
+
+SET @SQLString=N'(SELECT @TotCh2=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax)
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@TotCh2 INTEGER OUTPUT', @TotCh2 OUTPUT
+
+SET @SQLString=N'(SELECT @OldFreight=DS.Freight
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldFreight INTEGER OUTPUT', @OldFreight OUTPUT
+
+SET @SQLString=N'(SELECT @OldDelich=DS.DeliveryCh
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldDelich INTEGER OUTPUT', @OldDelich OUTPUT
+
+
+SET @SQLString=N'(SELECT @OldService=DS.ServiceTax
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldService INTEGER OUTPUT', @OldService OUTPUT
+
+SET @SQLString=N'(SELECT @OldTotal=SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage
+					+DS.ServiceTax)
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@OldTotal INTEGER OUTPUT', @OldTotal OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight=SUM((DS.ActualWeight*DS.Freight))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight INTEGER OUTPUT', @NewFreight OUTPUT
+
+SET @SQLString=N'(SELECT @NewService=SUM(convert(int,round(CAST(((DS.ActualWeight * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewService INTEGER OUTPUT', @NewService OUTPUT
+
+SET @SQLString=N'(SELECT @NewDeliCh=SUM((LCD.NoOfPackages*DS.DeliveryCh))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewDeliCh INTEGER OUTPUT', @NewDeliCh OUTPUT
+
+SET @SQLString=N'(SELECT @NewFreight1=SUM((LCD.NoOfPackages*DS.Freight))
+				FROM ' + @DBName + '.dbo.DeliverySlip DS JOIN ' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON LCD.ID=DS.LorryChallanDescID	 WHERE DS.MRNo='+CONVERT(VARCHAR(10),@MRNo)+' AND DS.Active=''True''
+				AND DS.BranchName='''+@BranchName+''')'
+
+EXEC sp_executesql @SQLString,N'@NewFreight1 INTEGER OUTPUT', @NewFreight1 OUTPUT
+
+
+	BEGIN
+		IF(@CashName='CASH')
+			BEGIN
+				SET	@TotCh=@TotCh2
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+		ELSE IF(@OldID>=46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@TotCh+@NewDeliCh
+				SET @OldFreight=@NewFreight
+				SET @OldService=@NewService
+				SET @OldDeliCh=@NewDeliCh
+			END
+		ELSE IF(@OldID<46833 and @CashName!='CASH')
+			BEGIN		
+				SET	@TotCh=@OldTotal
+				SET @OldFreight=@OldFreight
+				SET @OldService=@OldService
+				SET @OldDeliCh=@OldDeliCh
+			END
+	END
+--ELSE
+--	BEGIN
+--		IF(@CashName!='CASH')
+--			BEGIN
+--				SET	@TotCh=@TotCh2
+--			END
+--		ELSE
+--			BEGIN
+--				SET	@TotCh=@TotCh
+--				SET @OldFreight=@OldFreight
+--			END
+--	END
+
+BEGIN
+	SET @SQLString=N'IF('''+@Fixed+'''!=''Fixed'')
+		BEGIN
+			IF('''+@CashName+'''!=''CASH'')
+				 SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.CustomerName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,'''+CONVERT(VARCHAR(10),@OldFreight)+''' as Freight
+					,DS.Labour
+					,'''+CONVERT(VARCHAR(10),@OldDeliCh)+''' as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,'''+CONVERT(VARCHAR(10),@OldService)+''' as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			ELSE
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,DS.ActualWeight as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.CustomerName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,DS.DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,DS.ServiceTax as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+		END
+		ELSE
+			IF('''+@CashName+'''!=''CASH'')
+				SELECT
+					LCD.LRNo
+					,CONVERT(VARCHAR(10),LCD.LRDate,103) as LRDate
+					,LCD.NoofPackages
+					,CAST(''FIXED'' as VARCHAR(10)) as Weight
+					,LCD.Contents
+					,DS.MRNo
+					,CONVERT(VARCHAR(10),DS.DeliveryDate,103) as DeliveryDate
+					,UPPER(DS.CustomerName) as CustomerName
+					,DS.Packing
+					,DS.PrivateMarks
+					,CAST((LCD.NoOfPackages * DS.Freight)as Decimal(18,2)) as Freight
+					,DS.Labour
+					,CAST((LCD.NoOfPackages * DS.DeliveryCh)as Decimal(18,2)) as DeliveryCh
+					,DS.StationaryCh
+					,DS.Demurrage
+					,DS.LocalCartage
+					,convert(int,round(CAST(((LCD.NoOfPackages * DS.Freight) * (DS.ServiceTax))as Decimal(18,2))/100,0)) as ServiceTax
+					,'''+CONVERT(VARCHAR(10),@TotCh1)+''' as Total
+			--		,SUM(DS.Freight+DS.Labour+DS.DeliveryCh+DS.StationaryCh+DS.Demurrage+DS.LocalCartage+DS.ServiceTax)
+				FROM
+					' + @DBName + '.dbo.DeliverySlip DS
+				JOIN
+					' + @DBName + '.dbo.LorryChallanDescription LCD
+				ON
+					DS.LorryChallanDescID=LCD.ID
+				WHERE
+					MRNo='''+CONVERT(VARCHAR(10),@MRNo)+'''
+				AND
+					LCD.Active=''True''
+				AND
+					DS.Active=''True''
+			'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+==================================================================================================================================
+
+
+CREATE PROC AddressBook_AccName_Check
+(
+	@AccName VARCHAR(50)
+	,@CateName VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+  SET @SQLString=N'SELECT 
+						Name AS AccName
+					FROM
+						AddressBook
+					WHERE
+						Name='''+@AccName+'''
+					AND
+						Active=''True''
+					AND
+						BranchName='''+@BranchName+'''
+					'
+   EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+					
+
+END
+
+===========================================================================================================================================
+
+CREATE PROC LorryChallen_OriCustName_V
+@OriCust VARCHAR(20),
+@BranchName VARCHAR(50)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT
+		AddrB.Name AS AccName
+	FROM
+		' + @DBName + '.dbo.AddressBook AddrB
+	WHERE
+		AddrB.Name='''+@OriCust+'''
+	AND
+		BranchName='''+@BranchName+''''
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+
+
+
+

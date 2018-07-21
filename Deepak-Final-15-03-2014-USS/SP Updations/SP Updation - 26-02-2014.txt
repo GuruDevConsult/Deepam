@@ -1,0 +1,575 @@
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+ALTER PROC [dbo].[DeliverySlip_View]
+(
+@LRNO INT,
+@BranchName VARCHAR(50)
+)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT 
+		LCD.ID
+		,Convert(Varchar(20),LCD.LRDate,103) as Date
+		,LCD.CustName
+		,LCD.OriCustName
+		,LCD.LRNo
+		,LCD.NoOfPackages
+		,LCD.Contents
+		,LCD.Weight as TotalWeight
+--		,ISNULL(ACI.Freight,0) as Freight
+		,ISNULL(ACI.Labour,0) as Labour
+		,ISNULL(ACI.Delivery,0) as DeliveryCh
+		,ISNULL(ACI.Stationary,0) as StationaryCh
+		,ISNULL(ACI.Demurrage,0) as Demurrage
+		,ISNULL(ACI.LocalCartage,0) as LocalCartage
+		,ISNULL(ACI.ServiceTax,0) as ServiceTax
+	FROM
+		' + @DBName + '.dbo.LorryChallan LC
+	JOIN 
+		' + @DBName + '.dbo.LorryChallanDescription LCD
+	ON
+		LC.ID=LCD.LorryChallanID
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressBook AB
+	ON
+		LCD.CustName=AB.Name
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressChargesInfo ACI
+	ON
+		ACI.ID=AB.ChargesInfoID
+	WHERE
+		LRNO='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		LC.BranchName='''+@BranchName+'''
+--	AND
+--		AB.Active=''True''
+	AND
+		LC.Active=''True''
+	AND
+		LCD.Active=''True''
+
+	SELECT 
+		AFI.ID,AFI.Packings 
+	FROM
+		' + @DBName + '.dbo.LorryChallan LC
+	JOIN 
+		' + @DBName + '.dbo.LorryChallanDescription LCD
+	ON
+		LC.ID=LCD.LorryChallanID
+	JOIN
+		' + @DBName + '.dbo.AddressBook AB
+	ON
+		LCD.CustName=AB.Name
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressChargesInfo ACI
+	ON
+		ACI.ID=AB.ChargesInfoID
+	LEFT JOIN
+		' + @DBName + '.dbo.AddressFreightInfo AFI
+	ON
+		AFI.AddressID=AB.ID
+	WHERE
+		LRNO='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		LC.BranchName='''+@BranchName+'''
+	AND
+		AB.Active=''True''
+	AND
+		LC.Active=''True''
+	AND
+		LCD.Active=''True''
+
+	
+'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+==========================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 22-03-2012
+		DESCRIPTION : To View the Outstanding TotalAmount from the DailyBalance, CreditorsBalance, Payments Table from the DeepakRoadways Database
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+ALTER PROC [dbo].[Customer_Report]
+(
+	@TDate	DATETIME
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+SET @SQLString = N';WITH CustomerReport AS 
+(
+SELECT DISTINCT Name,CASE WHEN (SUM(Dbal)+isnull(SUM(PBal),0))>(isnull(SUM(Cbal),0)) THEN
+		((ISNULL(SUM(DBal),0)+ISNULL(SUM(PBal),0))-(ISNULL(SUM(PBal),0)))ELSE 0 END as TotalBalance FROM
+(
+		SELECT AB.Name AS Name,ISNULL(sum(balance),0) AS DBal,ISNULL(NULL,0) AS CBal,ISNULL(NULL,0) AS PBal FROM '+@DBName+'.dbo.DeliverySlip DS 
+			JOIN '+@DBName+'.dbo.AddressBook AB ON DS.CustomerName=AB.Name WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH''
+			AND DS.Active=''True'' AND AB.Active=''True'' AND DS.BranchName='''+@BranchName+'''
+			AND DS.DeliveryDate<='''+CONVERT(VARCHAR(10),@TDate,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+''' GROUP BY NAME
+        UNION 
+        SELECT AB.Name AS Name,ISNULL(NULL,0) AS DBal, ISNULL((CreditBalance),0) AS CBal,ISNULL(NULL,0) AS PBal FROM '+@DBName+'.dbo.CreditorsBalance 
+			CB JOIN '+@DBName+'.dbo.AddressBook AB ON CB.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' 
+			AND CB.BranchName='''+@BranchName+''' AND AB.Active=''True'' AND CB.Active=''True'' 
+			AND CB.ContactID IN(SELECT DB.ContactID FROM '+@DBName+'.dbo.DailyBalance DB JOIN '+@DBName+'.dbo.AddressBook AB ON	DB.ContactID=AB.ID 
+			WHERE AB.GroupName=''Sundry Debtors'' AND AB.Active=''True'' AND DB.Active=''True'' AND DB.BranchName='''+@BranchName+''') 
+			AND CB.Date<='''+CONVERT(VARCHAR(10),@TDate,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+'''
+		UNION
+		SELECT AB.Name AS Name,ISNULL(Null,0) AS DBal,ISNULL(NULL,0) AS CBal,ISNULL(SUM(TotBalance),0) AS PBal FROM '+@DBName+'.dbo.DailyBalance D 
+			JOIN '+@DBName+'.dbo.AddressBook AB ON D.ContactID=AB.ID WHERE AB.GroupName=''Sundry Debtors'' AND AB.Name!=''CASH''
+			AND DeliveryID is null and D.Active=''True'' AND AB.Active=''True'' AND D.BranchName='''+@BranchName+'''
+			AND D.Date<='''+CONVERT(VARCHAR(10),@TDate,101)+ ' ' + CONVERT(VARCHAR(30),'23:55 PM',108)+''' GROUP BY NAME
+) 
+	CustRep GROUP BY Name HAVING (ISNULL(SUM(DBal),0)+(ISNULL(SUM(PBal),0)))-ISNULL(SUM(CBal),0) > 0
+)
+
+SELECT NAME AS Name,TotalBalance AS TotalBalance,TotOutAmt=(SELECT SUM(TotalBalance) FROM CustomerReport) FROM CustomerReport'
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+==========================================================================================================================================
+
+set ANSI_NULLS ON
+set QUOTED_IDENTIFIER ON
+go
+
+
+
+   /*===========================================================
+		CREATED BY : Balakumaran N
+		CREATED DATE : 20-01-2012
+		DESCRIPTION : To Insert the record to the Delivery Slip table AND Update the record to the InvoiceBalance, TotalBalance And Payments Table
+		UPDATED BY : 
+		UPDATED DATE :
+    ============================================================*/
+
+
+ALTER PROC [dbo].[DeliverySlip_I]
+(
+	@LRNO			VARCHAR(25)
+	,@MRNO			VARCHAR(25)
+	,@Packing		VARCHAR(25)
+	,@hID			INT
+	,@DeliveryDate	DATETIME
+	,@ActWeight		DECIMAL(18,2)
+	,@CustomerName	VARCHAR(30)
+	,@OriCustName	VARCHAR(30)
+	,@PrivateMarks	VARCHAR(150)
+	,@Freight		DECIMAL(18,2)
+	,@Labour		DECIMAL(18,2)
+	,@DeliveryCh	DECIMAL(18,2)
+	,@StationaryCh	DECIMAL(18,2)
+	,@Demurrage		DECIMAL(18,2)
+	,@LocalCartage	DECIMAL(18,2)
+	,@ServiceTax	DECIMAL(18,2)
+	,@Fixed			VARCHAR(50)
+	,@BranchName	VARCHAR(50)
+	,@UserID		VARCHAR(25)
+)
+
+AS
+
+DECLARE @GETDATE VARCHAR(15)
+SET @GETDATE =(SELECT CONVERT(VARCHAR(15),GETDATE(),101))
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+DECLARE @InvBalID INT
+DECLARE @DeliverySlipID INT
+DECLARE @ToPay DECIMAL(18,2)
+DECLARE @Amount DECIMAL(18,2)
+DECLARE @TotFreight DECIMAL(18,2)
+DECLARE @TotService DECIMAL(18,2)
+DECLARE @Balance DECIMAL(18,2)
+DECLARE @ContactID INt
+DECLARE @TimeDate as datetime
+DECLARE @Time datetime
+DECLARE @NoOfPack INT
+
+	SET @Time=(SELECT
+	CONVERT(VARCHAR(8),GETDATE(),108) AS ForTime)      
+	SET @TimeDate=@DeliveryDate+@Time
+
+BEGIN
+	SET @SQLString=N'(SELECT @NoOfPack=NoOfPackages	FROM '+@DBName+'.dbo.LorryChallanDescription WHERE LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+						AND	BranchName='''+@BranchName+''' AND Active=''True'')'
+	
+	EXEC sp_executesql @SQLString,N'@NoOfPack INTEGER OUTPUT', @NoOfPack OUTPUT
+
+
+	
+IF(@Fixed='Fixed')
+BEGIN
+SET @TotFreight=(SELECT @NoOfPack * @Freight)
+SET @TotService=(SELECT (@NoOfPack * @Freight) * @ServiceTax/100)
+END
+ELSE
+BEGIN
+SET @TotFreight=(SELECT (@ActWeight * @Freight))
+SET @TotService=(SELECT (@ActWeight * @Freight) * @ServiceTax/100)
+END
+
+
+IF(@CustomerName='Cash')
+	BEGIN
+		SET @Amount=(SELECT (@Freight+@Labour+@DeliveryCh+@StationaryCh	+@Demurrage	+@LocalCartage	+@TotService) as Total)
+	END
+ELSE
+	BEGIN
+		SET @Amount=(SELECT (@TotFreight+@Labour+@DeliveryCh+@StationaryCh	+@Demurrage	+@LocalCartage	+@TotService) as Total)
+	END
+
+
+	SET @SQLString = N'IF NOT EXISTS(SELECT * FROM '+@DBName+'.dbo.DeliverySlip WHERE MRNO='+CONVERT(VARCHAR(10),@MRNO)+'
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')
+	BEGIN
+		INSERT INTO '+@DBName+'.dbo.DeliverySlip
+			(
+				MRNO
+				,LorryChallanDescID
+				,CustomerName
+				,OriCustName
+				,DeliveryDate
+				,ActualWeight
+				,Packing
+				,PrivateMarks
+				,Fixed
+				,Freight
+				,Labour
+				,DeliveryCh
+				,StationaryCh
+				,Demurrage
+				,LocalCartage
+				,ServiceTax
+				,Amount
+				,Balance
+				,BranchName
+				,Active
+				,PaymentStatus
+				,CreatedBy
+				,CreatedDate
+			)
+		VALUES
+			(
+				'''+CONVERT(VARCHAR(10),@MRNO)+'''
+				,'''+CONVERT(VARCHAR(10),@hID)+'''
+				,'''+@CustomerName+'''
+				,'''+@OriCustName+'''
+				,'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+				,'''+CONVERT(VARCHAR(10),@ActWeight)+'''
+				,'''+@Packing+'''
+				,'''+@PrivateMarks+'''
+				,'''+@Fixed+'''
+				,'''+CONVERT(VARCHAR(10),@Freight)+'''
+				,'''+CONVERT(VARCHAR(10),@Labour)+'''
+				,'''+CONVERT(VARCHAR(10),@DeliveryCh)+'''
+				,'''+CONVERT(VARCHAR(10),@StationaryCh)+'''
+				,'''+CONVERT(VARCHAR(10),@Demurrage)+'''
+				,'''+CONVERT(VARCHAR(10),@LocalCartage)+'''
+				,'''+CONVERT(VARCHAR(10),@ServiceTax)+'''
+				,'''+CONVERT(VARCHAR(10),@Amount)+'''
+				,'''+CONVERT(VARCHAR(10),@Amount)+'''
+				,'''+@BranchName+'''
+				,''True''
+				,''True''
+				,'''+@UserID+'''
+				,'''+@GETDATE+'''
+			)
+		SELECT @DeliverySlipID = SCOPE_IDENTITY()
+	END'
+
+		EXEC sp_executesql @SQLString,N'@DeliverySlipID INTEGER OUTPUT', @DeliverySlipID OUTPUT
+ 
+	SET @SQLString=N'(SELECT @ToPay=(Amount) FROM '+@DBName+'.dbo.DeliverySlip WHERE LorryChallanDescID='+CONVERT(VARCHAR(10),@hID)+'
+					 AND BranchName='''+@BranchName+''' AND ACTIVE=''TRUE'')'
+	
+	EXEC sp_executesql @SQLString,N'@ToPay INTEGER OUTPUT', @ToPay OUTPUT
+	
+	SET @SQLString=N'UPDATE '+@DBName+'_Acc.dbo.Company_EntryItemCount
+	SET
+		ItemCount=ISNULL(ItemCount,0)+1'
+
+	EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+	
+	DECLARE @EntryITCount INT
+	DECLARE @AccID INT
+	DECLARE @AccOriCustID INT
+	DECLARE @AccOthersID INT
+	DECLARE @AccParcelID INT
+	DECLARE @RelAcc VARCHAR(20)
+
+	SET @SQLString=N'(SELECT @EntryITCount=ItemCount FROM '+@DBName+'_Acc.dbo.Company_EntryItemCount)'
+
+	EXEC sp_executesql @SQLString,N'@EntryITCount INTEGER OUTPUT', @EntryITCount OUTPUT
+
+	SET @SQLString=N'(SELECT @AccID=ID FROM '+@DBName+'_Acc.dbo.Accounts WHERE [Name]='''+@CustomerName+'''
+						AND BranchName='''+@BranchName+''' AND Status=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@AccID INTEGER OUTPUT', @AccID OUTPUT
+
+	SET @SQLString=N'(SELECT @AccOriCustID=ID FROM '+@DBName+'_Acc.dbo.Accounts WHERE [Name]='''+@OriCustName+'''
+						AND BranchName='''+@BranchName+''' AND Status=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@AccOriCustID INTEGER OUTPUT', @AccOriCustID OUTPUT
+
+	SET @SQLString=N'(SELECT @ContactID=ID FROM '+@DBName+'.dbo.AddressBook WHERE [Name]='''+@CustomerName+'''
+						 AND BranchName='''+@BranchName+''' AND Active=''True'')'
+
+	EXEC sp_executesql @SQLString,N'@ContactID INTEGER OUTPUT', @ContactID OUTPUT
+
+	SET @SQLString=N'IF NOT EXISTS(SELECT * FROM '+@DBName+'_Acc.dbo.DebitsCredits 
+					WHERE Particular=''MRNo'' + '' '' +  ''' + CONVERT(VARCHAR(10),@MRNo)+'''
+					AND BranchName='''+@BranchName+''' AND Status=''True'')
+	BEGIN
+		IF('''+@CustomerName+'''=''Cash'')
+		BEGIN
+			INSERT INTO '+@DBName+'_Acc.dbo.DebitsCredits
+				(
+					Date
+					,AccountID
+					,AccOriCustID
+					,DeliveryID
+					,Amount
+					,BranchName
+					,CreatedAt
+					,CreatedBy
+					,Type
+					,Status
+					,Particular
+					,RelationAccount
+				)
+			   VALUES
+				(
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+					,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+					,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					,'''+CONVERT(VARCHAR(10),@Amount)+'''
+					,'''+@BranchName+'''
+					,'''+@GETDATE+'''
+					,'''+@UserID+'''
+					,''Cr''
+					,1
+					,''MRNo'' + '' '' + '''+CONVERT(VARCHAR(10),@MRNo)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+				)
+		END
+		ELSE
+		BEGIN
+			INSERT INTO '+@DBName+'_Acc.dbo.DebitsCredits
+				(
+					Date
+					,AccountID
+					,AccOriCustID
+					,DeliveryID
+					,Amount
+					,BranchName
+					,CreatedAt
+					,CreatedBy
+					,Type
+					,Status
+					,Particular
+					,RelationAccount
+				)
+			VALUES
+				(
+					'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+'''
+					,'''+CONVERT(VARCHAR(10),@AccID)+'''
+					,'''+CONVERT(VARCHAR(10),@AccOriCustID)+'''
+					,'''+CONVERT(VARCHAR(10),@DeliverySlipID)+'''
+					,'''+CONVERT(VARCHAR(10),@Amount)+'''
+					,'''+@BranchName+'''
+					,'''+@GETDATE+'''
+					,'''+@UserID+'''
+					,''Dr''
+					,1
+					,''MRNo'' + '' '' + '''+CONVERT(VARCHAR(10),@MRNo)+'''
+					,'''+@CustomerName+'''
+				)
+		END
+	END'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+SET @SQLString=N'INSERT INTO DailyBalance
+		(
+			ContactID
+			,DeliveryID
+			,Date
+			,Balance
+			,TotBalance
+			,BranchName
+			,Active
+			,CreatedBy
+			,CreatedDate
+		)
+		VALUES
+		(
+			'''+CONVERT(VARCHAR(10),@ContactID)+''',
+			'''+CONVERT(VARCHAR(10),@DeliverySlipID)+''',
+			'''+Convert(varchar(10),@DeliveryDate,101)+''' + '' '' + '''+CONVERT(VARCHAR(10),GetDate(),108)+''',
+			'''+CONVERT(VARCHAR(10),@Amount)+''',
+			'''+CONVERT(VARCHAR(10),@Amount)+''',
+			'''+@BranchName+''',
+			''True'',
+			'''+@UserID+''',
+			'''+@GETDATE+'''
+		)'
+
+	
+--	UPDATE 
+--			AutoGeneration
+--		SET
+--			DeliverySlip_MRNo=@MRNO;
+
+	SET @SQLString=N'UPDATE
+			'+@DBName+'.dbo.LorryChallanDescription
+		SET
+			ToPay='''+CONVERT(VARCHAR(10),@Amount)+'''
+			,CustName='''+@CustomerName+'''
+			,OriCustName='''+@OriCustName+'''
+	WHERE
+		LRNo='''+CONVERT(VARCHAR(10),@LRNO)+'''
+	AND
+		BranchName='''+@BranchName+'''
+	AND
+		Active=''True''
+	'
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+=========================================================================================================================================
+
+CREATE PROC AddressBook_AccName_Check
+(
+	@AccName VARCHAR(50)
+	,@CateName VARCHAR(50)
+	,@BranchName VARCHAR(50)
+)
+
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+  SET @SQLString=N'SELECT 
+						Name AS AccName
+					FROM
+						AddressBook
+					WHERE
+						Name='''+@AccName+'''
+					AND
+						Active=''True''
+					AND
+						BranchName='''+@BranchName+'''
+					'
+   EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+					
+
+END
+
+===========================================================================================================================================
+
+CREATE PROC LorryChallen_OriCustName_V
+@OriCust VARCHAR(20),
+@BranchName VARCHAR(50)
+AS
+
+DECLARE @DBName NVARCHAR(2550)
+
+SELECT @DBName=(SELECT NAME
+FROM sys.databases WHERE NAME=@BranchName)
+
+DECLARE @UseAndExecStatment NVARCHAR(4000), @SQLString NVARCHAR(4000)
+
+SET @UseAndExecStatment = 'USE ' + @DBName +' EXEC sp_executesql @SQLString'
+
+BEGIN
+	SET @SQLString = N'SELECT
+		AddrB.Name AS AccName
+	FROM
+		' + @DBName + '.dbo.AddressBook AddrB
+	WHERE
+		AddrB.Name='''+@OriCust+'''
+	AND
+		BranchName='''+@BranchName+''''
+
+EXEC sp_executesql @UseAndExecStatment, N'@SQLString nvarchar(4000)', @SQLString=@SQLString
+
+END
+
+
+
+
